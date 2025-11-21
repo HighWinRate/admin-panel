@@ -55,7 +55,7 @@ export interface File {
   isFree: boolean;
   path: string;
   created_at: string;
-  product?: Product | null;
+  products?: Product[];
   courses?: Course[];
 }
 
@@ -293,7 +293,7 @@ export class AdminApiClient {
       name: string;
       type: 'video' | 'pdf' | 'docx' | 'zip';
       isFree: boolean;
-      productId?: string;
+      productIds?: string[];
       courseIds?: string[];
     }
   ): Promise<File> {
@@ -302,10 +302,14 @@ export class AdminApiClient {
     formData.append('name', data.name);
     formData.append('type', data.type);
     formData.append('isFree', data.isFree.toString());
-    if (data.productId) formData.append('productId', data.productId);
+    if (data.productIds && data.productIds.length > 0) {
+      // Append each product ID separately for multipart/form-data
+      data.productIds.forEach((productId) => {
+        formData.append('productIds', productId);
+      });
+    }
     if (data.courseIds && data.courseIds.length > 0) {
       // Append each course ID separately for multipart/form-data
-      // NestJS expects arrays in form-data to be sent with the same key name repeated
       data.courseIds.forEach((courseId) => {
         formData.append('courseIds', courseId);
       });
@@ -327,7 +331,7 @@ export class AdminApiClient {
       name?: string;
       type?: 'video' | 'pdf' | 'docx' | 'zip';
       isFree?: boolean;
-      productId?: string;
+      productIds?: string[];
       courseIds?: string[];
     }
   ): Promise<File> {

@@ -31,14 +31,14 @@ export default function FilesPage() {
   const [fileName, setFileName] = useState('');
   const [fileType, setFileType] = useState<'video' | 'pdf' | 'docx' | 'zip'>('pdf');
   const [isFree, setIsFree] = useState(false);
-  const [productId, setProductId] = useState('');
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
 
   // Edit form state
   const [editFileName, setEditFileName] = useState('');
   const [editFileType, setEditFileType] = useState<'video' | 'pdf' | 'docx' | 'zip'>('pdf');
   const [editIsFree, setEditIsFree] = useState(false);
-  const [editProductId, setEditProductId] = useState('');
+  const [editSelectedProductIds, setEditSelectedProductIds] = useState<string[]>([]);
   const [editSelectedCourseIds, setEditSelectedCourseIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function FilesPage() {
         name: fileName,
         type: fileType,
         isFree,
-        productId: productId || undefined,
+        productIds: selectedProductIds.length > 0 ? selectedProductIds : undefined,
         courseIds: selectedCourseIds.length > 0 ? selectedCourseIds : undefined,
       });
 
@@ -124,7 +124,7 @@ export default function FilesPage() {
       setFileName('');
       setFileType('pdf');
       setIsFree(false);
-      setProductId('');
+      setSelectedProductIds([]);
       setSelectedCourseIds([]);
       setShowUploadModal(false);
       setUploadSuccess(true);
@@ -158,14 +158,14 @@ export default function FilesPage() {
     setEditFileType(file.type as 'video' | 'pdf' | 'docx' | 'zip');
     setEditIsFree(file.isFree);
     
-    // Fetch full file data to get courses and product
+    // Fetch full file data to get courses and products
     try {
       const fullFile = await adminApiClient.getFile(file.id);
-      // Extract product ID if available
-      if (fullFile.product) {
-        setEditProductId(fullFile.product.id);
+      // Extract product IDs from products array
+      if (fullFile.products && Array.isArray(fullFile.products)) {
+        setEditSelectedProductIds(fullFile.products.map((p: Product) => p.id));
       } else {
-        setEditProductId('');
+        setEditSelectedProductIds([]);
       }
       
       // Extract course IDs from courses array
@@ -176,7 +176,7 @@ export default function FilesPage() {
       }
     } catch (error) {
       console.error('Error fetching file details:', error);
-      setEditProductId('');
+      setEditSelectedProductIds([]);
       setEditSelectedCourseIds([]);
     }
     
@@ -198,7 +198,7 @@ export default function FilesPage() {
         name: editFileName,
         type: editFileType,
         isFree: editIsFree,
-        productId: editProductId || undefined,
+        productIds: editSelectedProductIds.length > 0 ? editSelectedProductIds : undefined,
         courseIds: editSelectedCourseIds.length > 0 ? editSelectedCourseIds : undefined,
       });
 
@@ -409,20 +409,36 @@ export default function FilesPage() {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  محصول مرتبط (اختیاری)
+                  محصولات مرتبط (اختیاری - می‌توانید چند محصول انتخاب کنید)
                 </label>
-                <select
-                  value={productId}
-                  onChange={(e) => setProductId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- انتخاب محصول --</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.title}
-                    </option>
-                  ))}
-                </select>
+                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
+                  {products.length === 0 ? (
+                    <p className="text-sm text-gray-500">هیچ محصولی موجود نیست</p>
+                  ) : (
+                    products.map((product) => (
+                      <label key={product.id} className="flex items-center py-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(product.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedProductIds([...selectedProductIds, product.id]);
+                            } else {
+                              setSelectedProductIds(selectedProductIds.filter(id => id !== product.id));
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{product.title}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {selectedProductIds.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {selectedProductIds.length} محصول انتخاب شده
+                  </p>
+                )}
               </div>
 
               <div className="mb-6">
@@ -478,7 +494,7 @@ export default function FilesPage() {
                     setFileName('');
                     setFileType('pdf');
                     setIsFree(false);
-                    setProductId('');
+                    setSelectedProductIds([]);
                     setSelectedCourseIds([]);
                   }}
                 >
@@ -544,20 +560,36 @@ export default function FilesPage() {
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  محصول مرتبط (اختیاری)
+                  محصولات مرتبط (اختیاری - می‌توانید چند محصول انتخاب کنید)
                 </label>
-                <select
-                  value={editProductId}
-                  onChange={(e) => setEditProductId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">-- انتخاب محصول --</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.title}
-                    </option>
-                  ))}
-                </select>
+                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
+                  {products.length === 0 ? (
+                    <p className="text-sm text-gray-500">هیچ محصولی موجود نیست</p>
+                  ) : (
+                    products.map((product) => (
+                      <label key={product.id} className="flex items-center py-1">
+                        <input
+                          type="checkbox"
+                          checked={editSelectedProductIds.includes(product.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditSelectedProductIds([...editSelectedProductIds, product.id]);
+                            } else {
+                              setEditSelectedProductIds(editSelectedProductIds.filter(id => id !== product.id));
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{product.title}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {editSelectedProductIds.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {editSelectedProductIds.length} محصول انتخاب شده
+                  </p>
+                )}
               </div>
 
               <div className="mb-6">
@@ -613,7 +645,7 @@ export default function FilesPage() {
                     setEditFileName('');
                     setEditFileType('pdf');
                     setEditIsFree(false);
-                    setEditProductId('');
+                    setEditSelectedProductIds([]);
                     setEditSelectedCourseIds([]);
                   }}
                 >
