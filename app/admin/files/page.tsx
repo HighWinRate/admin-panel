@@ -3,15 +3,43 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, File } from '@/lib/api';
+import { adminApiClient, File, Course, Product } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 export default function FilesPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
+  const [loadingData, setLoadingData] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingFile, setEditingFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [editError, setEditError] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [editSuccess, setEditSuccess] = useState(false);
+  
+  // Upload form state
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [fileName, setFileName] = useState('');
+  const [fileType, setFileType] = useState<'video' | 'pdf' | 'docx' | 'zip'>('pdf');
+  const [isFree, setIsFree] = useState(false);
+  const [productId, setProductId] = useState('');
+  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+
+  // Edit form state
+  const [editFileName, setEditFileName] = useState('');
+  const [editFileType, setEditFileType] = useState<'video' | 'pdf' | 'docx' | 'zip'>('pdf');
+  const [editIsFree, setEditIsFree] = useState(false);
+  const [editProductId, setEditProductId] = useState('');
+  const [editSelectedCourseIds, setEditSelectedCourseIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -24,21 +52,209 @@ export default function FilesPage() {
       return;
     }
 
-    async function fetchFiles() {
+    async function fetchData() {
       try {
-        const data = await adminApiClient.getFiles();
-        setFiles(data);
+        const [filesData, coursesData, productsData] = await Promise.all([
+          adminApiClient.getFiles(),
+          adminApiClient.getCourses(),
+          adminApiClient.getProducts(),
+        ]);
+        setFiles(filesData);
+        setCourses(coursesData);
+        setProducts(productsData);
       } catch (error) {
-        console.error('Error fetching files:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoadingFiles(false);
+        setLoadingData(false);
       }
     }
 
     if (isAuthenticated) {
-      fetchFiles();
+      fetchData();
     }
   }, [user, isAuthenticated, loading, router]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileToUpload(file);
+      if (!fileName) {
+        setFileName(file.name);
+      }
+      // Detect file type from extension
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (ext === 'mp4' || ext === 'avi' || ext === 'mov' || ext === 'mkv') {
+        setFileType('video');
+      } else if (ext === 'pdf') {
+        setFileType('pdf');
+      } else if (ext === 'docx' || ext === 'doc') {
+        setFileType('docx');
+      } else if (ext === 'zip' || ext === 'rar' || ext === '7z') {
+        setFileType('zip');
+      }
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fileToUpload) {
+      setUploadError('لطفاً یک فایل انتخاب کنید');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess(false);
+
+    try {
+      const uploadedFile = await adminApiClient.uploadFile(fileToUpload, {
+        name: fileName,
+        type: fileType,
+        isFree,
+        productId: productId || undefined,
+        courseIds: selectedCourseIds.length > 0 ? selectedCourseIds : undefined,
+      });
+
+      // Add to files list
+      setFiles([uploadedFile, ...files]);
+      
+      // Reset form
+      setFileToUpload(null);
+      setFileName('');
+      setFileType('pdf');
+      setIsFree(false);
+      setProductId('');
+      setSelectedCourseIds([]);
+      setShowUploadModal(false);
+      setUploadSuccess(true);
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => setUploadSuccess(false), 3000);
+    } catch (error: any) {
+      setUploadError(error.message || 'خطا در آپلود فایل. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('آیا از حذف این فایل اطمینان دارید؟')) {
+      return;
+    }
+
+    try {
+      await adminApiClient.deleteFile(id);
+      setFiles(files.filter(f => f.id !== id));
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('خطا در حذف فایل. لطفاً دوباره تلاش کنید.');
+    }
+  };
+
+  const handleEdit = async (file: File) => {
+    setEditingFile(file);
+    setEditFileName(file.name);
+    setEditFileType(file.type as 'video' | 'pdf' | 'docx' | 'zip');
+    setEditIsFree(file.isFree);
+    
+    // Fetch full file data to get courses and product
+    try {
+      const fullFile = await adminApiClient.getFile(file.id);
+      // Extract product ID if available
+      if (fullFile.product) {
+        setEditProductId(fullFile.product.id);
+      } else {
+        setEditProductId('');
+      }
+      
+      // Extract course IDs from courses array
+      if (fullFile.courses && Array.isArray(fullFile.courses)) {
+        setEditSelectedCourseIds(fullFile.courses.map((c: Course) => c.id));
+      } else {
+        setEditSelectedCourseIds([]);
+      }
+    } catch (error) {
+      console.error('Error fetching file details:', error);
+      setEditProductId('');
+      setEditSelectedCourseIds([]);
+    }
+    
+    setEditError('');
+    setEditSuccess(false);
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFile) return;
+
+    setSaving(true);
+    setEditError('');
+    setEditSuccess(false);
+
+    try {
+      const updatedFile = await adminApiClient.updateFile(editingFile.id, {
+        name: editFileName,
+        type: editFileType,
+        isFree: editIsFree,
+        productId: editProductId || undefined,
+        courseIds: editSelectedCourseIds.length > 0 ? editSelectedCourseIds : undefined,
+      });
+
+      // Update file in list
+      setFiles(files.map(f => f.id === editingFile.id ? updatedFile : f));
+      
+      // Close modal
+      setShowEditModal(false);
+      setEditingFile(null);
+      setEditSuccess(true);
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => setEditSuccess(false), 3000);
+    } catch (error: any) {
+      setEditError(error.message || 'خطا در به‌روزرسانی فایل. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownload = async (file: File) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const token = adminApiClient.getToken();
+      
+      if (!token) {
+        alert('لطفاً دوباره وارد شوید');
+        return;
+      }
+
+      // Fetch file with authorization header
+      const response = await fetch(`${apiUrl}/file/serve/${file.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('خطا در دانلود فایل');
+      }
+
+      // Get blob and create download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('خطا در دانلود فایل. لطفاً دوباره تلاش کنید.');
+    }
+  };
 
   if (loading || loadingFiles) {
     return (
@@ -56,32 +272,358 @@ export default function FilesPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Success messages */}
+      {uploadSuccess && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+          فایل با موفقیت آپلود شد
+        </div>
+      )}
+      {editSuccess && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+          فایل با موفقیت به‌روزرسانی شد
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">مدیریت فایل‌ها</h1>
-        <Button variant="primary">آپلود فایل جدید</Button>
+        <Button variant="primary" onClick={() => setShowUploadModal(true)}>
+          آپلود فایل جدید
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {files.map((file) => (
-          <Card key={file.id} className="p-6">
-            <h3 className="text-xl font-semibold mb-2">{file.name}</h3>
-            <p className="text-gray-600 text-sm mb-4">
-              نوع: {file.type} | حجم: {(file.size / 1024 / 1024).toFixed(2)} MB
-            </p>
-            <div className="flex justify-between items-center mb-4">
-              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                file.isFree ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-              }`}>
-                {file.isFree ? 'رایگان' : 'پولی'}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">دانلود</Button>
-              <Button variant="danger" size="sm">حذف</Button>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {files.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600">هنوز فایلی آپلود نشده است</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {files.map((file) => (
+            <Card key={file.id} className="p-6">
+              <h3 className="text-xl font-semibold mb-2">{file.name}</h3>
+              <p className="text-gray-600 text-sm mb-4">
+                نوع: {file.type} | حجم: {(file.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+              <div className="flex justify-between items-center mb-4">
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                  file.isFree ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {file.isFree ? 'رایگان' : 'پولی'}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleDownload(file)}
+                >
+                  دانلود
+                </Button>
+                <Button 
+                  variant="primary" 
+                  size="sm"
+                  onClick={() => handleEdit(file)}
+                >
+                  ویرایش
+                </Button>
+                <Button 
+                  variant="danger" 
+                  size="sm"
+                  onClick={() => handleDelete(file.id)}
+                >
+                  حذف
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">آپلود فایل جدید</h2>
+            
+            {uploadError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+                {uploadError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpload}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  فایل
+                </label>
+                <input
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  required
+                />
+                {fileToUpload && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    انتخاب شده: {fileToUpload.name} ({(fileToUpload.size / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <Input
+                  label="نام فایل"
+                  type="text"
+                  value={fileName}
+                  onChange={(e) => setFileName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  نوع فایل
+                </label>
+                <select
+                  value={fileType}
+                  onChange={(e) => setFileType(e.target.value as 'video' | 'pdf' | 'docx' | 'zip')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="video">ویدیو</option>
+                  <option value="docx">Word (DOCX)</option>
+                  <option value="zip">Zip Archive</option>
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={isFree}
+                    onChange={(e) => setIsFree(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">فایل رایگان</span>
+                </label>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  محصول مرتبط (اختیاری)
+                </label>
+                <select
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- انتخاب محصول --</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  دوره‌های مرتبط (اختیاری - می‌توانید چند دوره انتخاب کنید)
+                </label>
+                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
+                  {courses.length === 0 ? (
+                    <p className="text-sm text-gray-500">هیچ دوره‌ای موجود نیست</p>
+                  ) : (
+                    courses.map((course) => (
+                      <label key={course.id} className="flex items-center py-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedCourseIds.includes(course.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCourseIds([...selectedCourseIds, course.id]);
+                            } else {
+                              setSelectedCourseIds(selectedCourseIds.filter(id => id !== course.id));
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{course.title}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {selectedCourseIds.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {selectedCourseIds.length} دوره انتخاب شده
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  isLoading={uploading}
+                  disabled={uploading}
+                >
+                  آپلود
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadError('');
+                    setFileToUpload(null);
+                    setFileName('');
+                    setFileType('pdf');
+                    setIsFree(false);
+                    setProductId('');
+                    setSelectedCourseIds([]);
+                  }}
+                >
+                  لغو
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">ویرایش فایل</h2>
+            
+            {editError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+                {editError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdate}>
+              <div className="mb-4">
+                <Input
+                  label="نام فایل"
+                  type="text"
+                  value={editFileName}
+                  onChange={(e) => setEditFileName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  نوع فایل
+                </label>
+                <select
+                  value={editFileType}
+                  onChange={(e) => setEditFileType(e.target.value as 'video' | 'pdf' | 'docx' | 'zip')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="video">ویدیو</option>
+                  <option value="docx">Word (DOCX)</option>
+                  <option value="zip">Zip Archive</option>
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={editIsFree}
+                    onChange={(e) => setEditIsFree(e.target.checked)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">فایل رایگان</span>
+                </label>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  محصول مرتبط (اختیاری)
+                </label>
+                <select
+                  value={editProductId}
+                  onChange={(e) => setEditProductId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- انتخاب محصول --</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  دوره‌های مرتبط (اختیاری - می‌توانید چند دوره انتخاب کنید)
+                </label>
+                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
+                  {courses.length === 0 ? (
+                    <p className="text-sm text-gray-500">هیچ دوره‌ای موجود نیست</p>
+                  ) : (
+                    courses.map((course) => (
+                      <label key={course.id} className="flex items-center py-1">
+                        <input
+                          type="checkbox"
+                          checked={editSelectedCourseIds.includes(course.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEditSelectedCourseIds([...editSelectedCourseIds, course.id]);
+                            } else {
+                              setEditSelectedCourseIds(editSelectedCourseIds.filter(id => id !== course.id));
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{course.title}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {editSelectedCourseIds.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {editSelectedCourseIds.length} دوره انتخاب شده
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  isLoading={saving}
+                  disabled={saving}
+                >
+                  ذخیره
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingFile(null);
+                    setEditError('');
+                    setEditFileName('');
+                    setEditFileType('pdf');
+                    setEditIsFree(false);
+                    setEditProductId('');
+                    setEditSelectedCourseIds([]);
+                  }}
+                >
+                  لغو
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

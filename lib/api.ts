@@ -55,6 +55,8 @@ export interface File {
   isFree: boolean;
   path: string;
   created_at: string;
+  product?: Product | null;
+  courses?: Course[];
 }
 
 export interface Category {
@@ -285,16 +287,51 @@ export class AdminApiClient {
   }
 
   // File endpoints (Admin)
-  async uploadFile(file: File, productId?: string, courseId?: string): Promise<File> {
+  async uploadFile(
+    file: File,
+    data: {
+      name: string;
+      type: 'video' | 'pdf' | 'docx' | 'zip';
+      isFree: boolean;
+      productId?: string;
+      courseIds?: string[];
+    }
+  ): Promise<File> {
     const formData = new FormData();
     formData.append('file', file);
-    if (productId) formData.append('productId', productId);
-    if (courseId) formData.append('courseId', courseId);
-    return this.requestFormData<File>('/file/upload', formData);
+    formData.append('name', data.name);
+    formData.append('type', data.type);
+    formData.append('isFree', data.isFree.toString());
+    if (data.productId) formData.append('productId', data.productId);
+    if (data.courseIds && data.courseIds.length > 0) {
+      // Append each course ID separately for multipart/form-data
+      // NestJS expects arrays in form-data to be sent with the same key name repeated
+      data.courseIds.forEach((courseId) => {
+        formData.append('courseIds', courseId);
+      });
+    }
+    return this.requestFormData<File>('/file', formData);
   }
 
   async getFiles(): Promise<File[]> {
     return this.get<File[]>('/file');
+  }
+
+  async getFile(id: string): Promise<File> {
+    return this.get<File>(`/file/${id}`);
+  }
+
+  async updateFile(
+    id: string,
+    data: {
+      name?: string;
+      type?: 'video' | 'pdf' | 'docx' | 'zip';
+      isFree?: boolean;
+      productId?: string;
+      courseIds?: string[];
+    }
+  ): Promise<File> {
+    return this.patch<File>(`/file/${id}`, data);
   }
 
   async deleteFile(id: string): Promise<void> {
