@@ -30,6 +30,8 @@ export interface Product {
   trading_session?: string;
   keywords?: string[];
   is_active: boolean;
+  discountedPrice?: number;
+  discountExpiresAt?: string;
   created_at: string;
   courses?: Course[];
   files?: File[];
