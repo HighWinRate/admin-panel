@@ -34,7 +34,10 @@ export default function DashboardPage() {
           adminApiClient.getProducts(),
           adminApiClient.getCourses(),
           adminApiClient.getUsers(),
-          adminApiClient.getTransactions(),
+          adminApiClient.getTransactions().catch((err) => {
+            console.error('Error fetching transactions:', err);
+            return []; // Return empty array on error
+          }),
         ]);
 
         setStats({
@@ -45,6 +48,13 @@ export default function DashboardPage() {
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
+        // Set stats to 0 on error to avoid breaking the UI
+        setStats({
+          products: 0,
+          courses: 0,
+          users: 0,
+          transactions: 0,
+        });
       } finally {
         setLoadingStats(false);
       }
