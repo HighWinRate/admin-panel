@@ -375,6 +375,13 @@ export class AdminApiClient {
     return this.get<Transaction>(`/transaction/${id}`);
   }
 
+  async updateTransaction(
+    id: string,
+    data: Partial<Transaction>
+  ): Promise<Transaction> {
+    return this.patch<Transaction>(`/transaction/${id}`, data);
+  }
+
   // Discount endpoints (Admin)
   async getDiscountCodes(): Promise<DiscountCode[]> {
     return this.get<DiscountCode[]>('/discount');
