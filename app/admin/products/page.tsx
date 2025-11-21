@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Product, Course } from '@/lib/api';
+import { adminApiClient, Product, Course, Category } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,6 +14,7 @@ export default function ProductsPage() {
   const { user, isAuthenticated, loading } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -26,7 +27,12 @@ export default function ProductsPage() {
     discountedPrice: '',
     discountExpiresAt: '',
     courseIds: [] as string[],
+    keywords: [] as string[],
+    trading_style: '',
+    trading_session: '',
+    categoryId: '',
   });
+  const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -42,12 +48,14 @@ export default function ProductsPage() {
 
     async function fetchData() {
       try {
-        const [productsData, coursesData] = await Promise.all([
+        const [productsData, coursesData, categoriesData] = await Promise.all([
           adminApiClient.getProducts(),
           adminApiClient.getCourses(),
+          adminApiClient.getCategories(),
         ]);
         setProducts(productsData);
         setCourses(coursesData);
+        setCategories(categoriesData);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -77,6 +85,30 @@ export default function ProductsPage() {
         : [...prev.courseIds, courseId];
       return { ...prev, courseIds };
     });
+  };
+
+  const handleAddKeyword = () => {
+    if (keywordInput.trim() && !formData.keywords.includes(keywordInput.trim())) {
+      setFormData((prev) => ({
+        ...prev,
+        keywords: [...prev.keywords, keywordInput.trim()],
+      }));
+      setKeywordInput('');
+    }
+  };
+
+  const handleRemoveKeyword = (keyword: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      keywords: prev.keywords.filter((k) => k !== keyword),
+    }));
+  };
+
+  const handleKeywordInputKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddKeyword();
+    }
   };
 
   const validateForm = () => {
@@ -115,6 +147,10 @@ export default function ProductsPage() {
         discountedPrice: product.discountedPrice?.toString() || '',
         discountExpiresAt: discountExpiresAt,
         courseIds: product.courses?.map((c) => c.id) || [],
+        keywords: product.keywords || [],
+        trading_style: product.trading_style || '',
+        trading_session: product.trading_session || '',
+        categoryId: product.category?.id || '',
       });
       setEditingProductId(productId);
       setIsModalOpen(true);
@@ -145,6 +181,10 @@ export default function ProductsPage() {
           ? new Date(formData.discountExpiresAt).toISOString()
           : undefined,
         courseIds: formData.courseIds.length > 0 ? formData.courseIds : undefined,
+        keywords: formData.keywords.length > 0 ? formData.keywords : undefined,
+        trading_style: formData.trading_style || undefined,
+        trading_session: formData.trading_session || undefined,
+        categoryId: formData.categoryId || undefined,
       };
 
       if (editingProductId) {
@@ -168,7 +208,12 @@ export default function ProductsPage() {
         discountedPrice: '',
         discountExpiresAt: '',
         courseIds: [],
+        keywords: [],
+        trading_style: '',
+        trading_session: '',
+        categoryId: '',
       });
+      setKeywordInput('');
       setEditingProductId(null);
       setIsModalOpen(false);
       setErrors({});
@@ -260,7 +305,12 @@ export default function ProductsPage() {
             discountedPrice: '',
             discountExpiresAt: '',
             courseIds: [],
+            keywords: [],
+            trading_style: '',
+            trading_session: '',
+            categoryId: '',
           });
+          setKeywordInput('');
           setErrors({});
         }}
         title={editingProductId ? 'ویرایش محصول' : 'افزودن محصول جدید'}
@@ -336,6 +386,91 @@ export default function ProductsPage() {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                سبک معاملاتی
+              </label>
+              <Input
+                name="trading_style"
+                placeholder="مثلاً: swing, day, scalping"
+                value={formData.trading_style}
+                onChange={handleInputChange}
+                maxLength={50}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                جلسه معاملاتی
+              </label>
+              <Input
+                name="trading_session"
+                placeholder="مثلاً: london, newyork, tokyo"
+                value={formData.trading_session}
+                onChange={handleInputChange}
+                maxLength={50}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              کلمات کلیدی
+            </label>
+            <div className="flex gap-2 mb-2">
+              <Input
+                placeholder="کلمه کلیدی را وارد کنید و Enter بزنید"
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                onKeyPress={handleKeywordInputKeyPress}
+              />
+              <Button type="button" variant="outline" onClick={handleAddKeyword}>
+                افزودن
+              </Button>
+            </div>
+            {formData.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.keywords.map((keyword, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  >
+                    {keyword}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveKeyword(keyword)}
+                      className="text-blue-600 hover:text-blue-800 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {categories.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                دسته‌بندی محصول
+              </label>
+              <select
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">بدون دسته‌بندی</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {courses.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -375,7 +510,12 @@ export default function ProductsPage() {
                   discountedPrice: '',
                   discountExpiresAt: '',
                   courseIds: [],
+                  keywords: [],
+                  trading_style: '',
+                  trading_session: '',
+                  categoryId: '',
                 });
+                setKeywordInput('');
                 setErrors({});
               }}
             >

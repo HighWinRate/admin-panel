@@ -29,6 +29,9 @@ export function AdminNavbar() {
                 <Link href="/admin/courses" className="text-gray-700 hover:text-blue-600">
                   دوره‌ها
                 </Link>
+                <Link href="/admin/categories" className="text-gray-700 hover:text-blue-600">
+                  دسته‌بندی‌ها
+                </Link>
                 <Link href="/admin/users" className="text-gray-700 hover:text-blue-600">
                   کاربران
                 </Link>

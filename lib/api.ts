@@ -65,8 +65,13 @@ export interface Category {
   id: string;
   name: string;
   description?: string;
+  slug?: string;
+  icon?: string;
+  sort_order?: number;
+  is_active?: boolean;
   parent_id?: string;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface Transaction {
@@ -394,6 +399,10 @@ export class AdminApiClient {
   // Category endpoints (Admin)
   async getCategories(): Promise<Category[]> {
     return this.get<Category[]>('/categories');
+  }
+
+  async getCategory(id: string): Promise<Category> {
+    return this.get<Category>(`/categories/${id}`);
   }
 
   async createCategory(data: Partial<Category>): Promise<Category> {
