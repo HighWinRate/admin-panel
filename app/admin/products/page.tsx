@@ -291,7 +291,7 @@ export default function ProductsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">مدیریت محصولات</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">مدیریت محصولات</h1>
         <Button variant="primary" onClick={() => setIsModalOpen(true)}>
           افزودن محصول جدید
         </Button>
@@ -301,10 +301,10 @@ export default function ProductsPage() {
         {products.map((product) => (
           <Card key={product.id} className="p-6">
             <h3 className="text-xl font-semibold mb-2">{product.title}</h3>
-            <p className="text-gray-600 text-sm mb-4">{product.description}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{product.description}</p>
             <div className="flex justify-between items-center mb-4">
-              <span className="text-blue-600 font-semibold">${product.price}</span>
-              <span className="text-green-600">نرخ برد: {product.winrate}%</span>
+              <span className="text-blue-600 dark:text-blue-400 font-semibold">${product.price}</span>
+              <span className="text-green-600 dark:text-green-400">نرخ برد: {product.winrate}%</span>
             </div>
             <div className="flex gap-2">
               <Button
@@ -367,7 +367,7 @@ export default function ProductsPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               توضیحات
             </label>
             <textarea
@@ -375,7 +375,7 @@ export default function ProductsPage() {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             />
           </div>
 
@@ -454,52 +454,52 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              کلمات کلیدی
-            </label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                placeholder="کلمه کلیدی را وارد کنید و Enter بزنید"
-                value={keywordInput}
-                onChange={(e) => setKeywordInput(e.target.value)}
-                onKeyPress={handleKeywordInputKeyPress}
-              />
-              <Button type="button" variant="outline" onClick={handleAddKeyword}>
-                افزودن
-              </Button>
-            </div>
-            {formData.keywords.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.keywords.map((keyword, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                  >
-                    {keyword}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveKeyword(keyword)}
-                      className="text-blue-600 hover:text-blue-800 font-bold"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                کلمات کلیدی
+              </label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  placeholder="کلمه کلیدی را وارد کنید و Enter بزنید"
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  onKeyPress={handleKeywordInputKeyPress}
+                />
+                <Button type="button" variant="outline" onClick={handleAddKeyword}>
+                  افزودن
+                </Button>
               </div>
-            )}
-          </div>
+              {formData.keywords.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.keywords.map((keyword, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full"
+                    >
+                      {keyword}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveKeyword(keyword)}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
           {categories.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 دسته‌بندی محصول
               </label>
               <select
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               >
                 <option value="">بدون دسته‌بندی</option>
                 {categories.map((category) => (
@@ -548,57 +548,57 @@ export default function ProductsPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
                 className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm font-medium text-gray-700">محصول فعال است</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">محصول فعال است</span>
             </label>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              توضیحات Markdown
-            </label>
-            <textarea
-              name="markdown_description"
-              value={formData.markdown_description}
-              onChange={handleInputChange}
-              rows={5}
-              placeholder="# عنوان\n\nتوضیحات کامل..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                توضیحات Markdown
+              </label>
+              <textarea
+                name="markdown_description"
+                value={formData.markdown_description}
+                onChange={handleInputChange}
+                rows={5}
+                placeholder="# عنوان\n\nتوضیحات کامل..."
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              نتایج بکتست (JSON)
-            </label>
-            <textarea
-              name="backtest_results"
-              value={formData.backtest_results}
-              onChange={handleInputChange}
-              rows={4}
-              placeholder='{"profit": 1500, "drawdown": 200, "win_rate": 85.5}'
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-            />
-            <p className="mt-1 text-xs text-gray-500">فرمت JSON معتبر وارد کنید</p>
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                نتایج بکتست (JSON)
+              </label>
+              <textarea
+                name="backtest_results"
+                value={formData.backtest_results}
+                onChange={handleInputChange}
+                rows={4}
+                placeholder='{"profit": 1500, "drawdown": 200, "win_rate": 85.5}'
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">فرمت JSON معتبر وارد کنید</p>
+            </div>
 
           {courses.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 دوره‌های مرتبط
               </label>
-              <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
+              <div className="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-800">
                 {courses.map((course) => (
                   <label
                     key={course.id}
-                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-gray-50 rounded cursor-pointer"
+                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={formData.courseIds.includes(course.id)}
                       onChange={() => handleCourseSelect(course.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800"
                     />
-                    <span className="text-sm text-gray-700">{course.title}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{course.title}</span>
                   </label>
                 ))}
               </div>

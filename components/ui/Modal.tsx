@@ -39,22 +39,22 @@ export function Modal({
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Background overlay */}
       <div
-        className="absolute inset-0 bg-gray-900 bg-opacity-50 transition-opacity"
+        className="absolute inset-0 bg-gray-900 dark:bg-black bg-opacity-50 dark:bg-opacity-70 transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal panel */}
       <div
-        className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden flex flex-col`}
+        className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-gray-900/50 w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 focus:outline-none transition-colors"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 focus:outline-none transition-colors"
               aria-label="بستن"
             >
               <svg
@@ -73,7 +73,7 @@ export function Modal({
         </div>
 
         {/* Content */}
-        <div className="px-6 py-4 overflow-y-auto flex-1">{children}</div>
+        <div className="px-6 py-4 overflow-y-auto flex-1 text-gray-900 dark:text-gray-100">{children}</div>
       </div>
     </div>
   );

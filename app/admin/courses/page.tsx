@@ -236,7 +236,7 @@ export default function CoursesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">مدیریت دوره‌ها</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">مدیریت دوره‌ها</h1>
         <Button variant="primary" onClick={() => setIsModalOpen(true)}>
           افزودن دوره جدید
         </Button>
@@ -246,7 +246,7 @@ export default function CoursesPage() {
         {courses.map((course) => (
           <Card key={course.id} className="p-6">
             <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
-            <p className="text-gray-600 text-sm mb-4">{course.description}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{course.description}</p>
             {course.duration_minutes && (
               <p className="text-xs text-gray-500 mb-4">
                 مدت زمان: {course.duration_minutes} دقیقه
@@ -306,7 +306,7 @@ export default function CoursesPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               توضیحات
             </label>
             <textarea
@@ -314,12 +314,12 @@ export default function CoursesPage() {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               محتوای Markdown
             </label>
             <textarea
@@ -328,12 +328,12 @@ export default function CoursesPage() {
               onChange={handleInputChange}
               rows={5}
               placeholder="# عنوان دوره\n\nمحتوای کامل..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               کلمات کلیدی
             </label>
             <div className="flex gap-2 mb-2">
@@ -352,13 +352,13 @@ export default function CoursesPage() {
                 {formData.keywords.map((keyword, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full"
                   >
                     {keyword}
                     <button
                       type="button"
                       onClick={() => handleRemoveKeyword(keyword)}
-                      className="text-blue-600 hover:text-blue-800 font-bold"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold"
                     >
                       ×
                     </button>
@@ -398,14 +398,14 @@ export default function CoursesPage() {
 
           {categories.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 دسته‌بندی دوره
               </label>
               <select
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               >
                 <option value="">بدون دسته‌بندی</option>
                 {categories.map((category) => (
@@ -426,28 +426,28 @@ export default function CoursesPage() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
                 className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm font-medium text-gray-700">دوره فعال است</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">دوره فعال است</span>
             </label>
           </div>
 
           {files.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 فایل‌های مرتبط
               </label>
-              <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
+              <div className="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-800">
                 {files.map((file) => (
                   <label
                     key={file.id}
-                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-gray-50 rounded cursor-pointer"
+                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={formData.fileIds.includes(file.id)}
                       onChange={() => handleFileSelect(file.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800"
                     />
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
                       {file.name} ({file.type})
                     </span>
                   </label>
