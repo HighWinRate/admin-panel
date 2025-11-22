@@ -29,7 +29,12 @@ export interface Product {
   trading_style?: string;
   trading_session?: string;
   keywords?: string[];
+  backtest_trades_count?: number;
+  markdown_description?: string;
+  backtest_results?: any;
+  thumbnail?: string;
   is_active: boolean;
+  sort_order?: number;
   discountedPrice?: number;
   discountExpiresAt?: string;
   created_at: string;
@@ -45,6 +50,10 @@ export interface Course {
   markdown_content?: string;
   keywords?: string[];
   duration_minutes?: number;
+  thumbnail?: string;
+  is_active?: boolean;
+  sort_order?: number;
+  category?: Category;
   files?: File[];
   created_at?: string;
 }

@@ -31,6 +31,12 @@ export default function ProductsPage() {
     trading_style: '',
     trading_session: '',
     categoryId: '',
+    backtest_trades_count: '',
+    markdown_description: '',
+    backtest_results: '',
+    thumbnail: '',
+    is_active: true,
+    sort_order: '0',
   });
   const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -151,6 +157,12 @@ export default function ProductsPage() {
         trading_style: product.trading_style || '',
         trading_session: product.trading_session || '',
         categoryId: product.category?.id || '',
+        backtest_trades_count: product.backtest_trades_count?.toString() || '',
+        markdown_description: product.markdown_description || '',
+        backtest_results: product.backtest_results ? JSON.stringify(product.backtest_results, null, 2) : '',
+        thumbnail: product.thumbnail || '',
+        is_active: product.is_active ?? true,
+        sort_order: product.sort_order?.toString() || '0',
       });
       setEditingProductId(productId);
       setIsModalOpen(true);
@@ -185,6 +197,22 @@ export default function ProductsPage() {
         trading_style: formData.trading_style || undefined,
         trading_session: formData.trading_session || undefined,
         categoryId: formData.categoryId || undefined,
+        backtest_trades_count: formData.backtest_trades_count
+          ? parseInt(formData.backtest_trades_count)
+          : undefined,
+        markdown_description: formData.markdown_description || undefined,
+        backtest_results: formData.backtest_results
+          ? (() => {
+              try {
+                return JSON.parse(formData.backtest_results);
+              } catch {
+                return undefined;
+              }
+            })()
+          : undefined,
+        thumbnail: formData.thumbnail || undefined,
+        is_active: formData.is_active,
+        sort_order: parseInt(formData.sort_order) || 0,
       };
 
       if (editingProductId) {
@@ -212,6 +240,12 @@ export default function ProductsPage() {
         trading_style: '',
         trading_session: '',
         categoryId: '',
+        backtest_trades_count: '',
+        markdown_description: '',
+        backtest_results: '',
+        thumbnail: '',
+        is_active: true,
+        sort_order: '0',
       });
       setKeywordInput('');
       setEditingProductId(null);
@@ -309,6 +343,12 @@ export default function ProductsPage() {
             trading_style: '',
             trading_session: '',
             categoryId: '',
+            backtest_trades_count: '',
+            markdown_description: '',
+            backtest_results: '',
+            thumbnail: '',
+            is_active: true,
+            sort_order: '0',
           });
           setKeywordInput('');
           setErrors({});
@@ -470,6 +510,76 @@ export default function ProductsPage() {
               </select>
             </div>
           )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="تعداد معاملات بکتست"
+              name="backtest_trades_count"
+              type="number"
+              min="0"
+              value={formData.backtest_trades_count}
+              onChange={handleInputChange}
+            />
+
+            <Input
+              label="ترتیب نمایش"
+              name="sort_order"
+              type="number"
+              min="0"
+              value={formData.sort_order}
+              onChange={handleInputChange}
+            />
+          </div>
+
+          <Input
+            label="تصویر شاخص (مسیر فایل)"
+            name="thumbnail"
+            value={formData.thumbnail}
+            onChange={handleInputChange}
+            placeholder="مثلاً: thumbnail.jpg"
+          />
+
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="is_active"
+                checked={formData.is_active}
+                onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
+                className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">محصول فعال است</span>
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              توضیحات Markdown
+            </label>
+            <textarea
+              name="markdown_description"
+              value={formData.markdown_description}
+              onChange={handleInputChange}
+              rows={5}
+              placeholder="# عنوان\n\nتوضیحات کامل..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              نتایج بکتست (JSON)
+            </label>
+            <textarea
+              name="backtest_results"
+              value={formData.backtest_results}
+              onChange={handleInputChange}
+              rows={4}
+              placeholder='{"profit": 1500, "drawdown": 200, "win_rate": 85.5}'
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">فرمت JSON معتبر وارد کنید</p>
+          </div>
 
           {courses.length > 0 && (
             <div>

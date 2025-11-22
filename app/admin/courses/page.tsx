@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Course, File } from '@/lib/api';
+import { adminApiClient, Course, File, Category } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,6 +14,7 @@ export default function CoursesPage() {
   const { user, isAuthenticated, loading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
@@ -21,8 +22,16 @@ export default function CoursesPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    markdown_content: '',
+    keywords: [] as string[],
+    thumbnail: '',
+    is_active: true,
+    sort_order: '0',
+    duration_minutes: '0',
+    categoryId: '',
     fileIds: [] as string[],
   });
+  const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -38,12 +47,14 @@ export default function CoursesPage() {
 
     async function fetchData() {
       try {
-        const [coursesData, filesData] = await Promise.all([
+        const [coursesData, filesData, categoriesData] = await Promise.all([
           adminApiClient.getCourses(),
           adminApiClient.getFiles(),
+          adminApiClient.getCategories(),
         ]);
         setCourses(coursesData);
         setFiles(filesData);
+        setCategories(categoriesData);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -57,12 +68,36 @@ export default function CoursesPage() {
   }, [user, isAuthenticated, loading, router]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleAddKeyword = () => {
+    if (keywordInput.trim() && !formData.keywords.includes(keywordInput.trim())) {
+      setFormData((prev) => ({
+        ...prev,
+        keywords: [...prev.keywords, keywordInput.trim()],
+      }));
+      setKeywordInput('');
+    }
+  };
+
+  const handleRemoveKeyword = (keyword: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      keywords: prev.keywords.filter((k) => k !== keyword),
+    }));
+  };
+
+  const handleKeywordInputKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddKeyword();
     }
   };
 
@@ -93,6 +128,13 @@ export default function CoursesPage() {
       setFormData({
         title: course.title || '',
         description: course.description || '',
+        markdown_content: course.markdown_content || '',
+        keywords: course.keywords || [],
+        thumbnail: course.thumbnail || '',
+        is_active: course.is_active ?? true,
+        sort_order: course.sort_order?.toString() || '0',
+        duration_minutes: course.duration_minutes?.toString() || '0',
+        categoryId: course.category?.id || '',
         fileIds: course.files?.map((f) => f.id) || [],
       });
       setEditingCourseId(courseId);
@@ -115,6 +157,13 @@ export default function CoursesPage() {
       const courseData = {
         title: formData.title,
         description: formData.description || undefined,
+        markdown_content: formData.markdown_content || undefined,
+        keywords: formData.keywords.length > 0 ? formData.keywords : undefined,
+        thumbnail: formData.thumbnail || undefined,
+        is_active: formData.is_active,
+        sort_order: parseInt(formData.sort_order) || 0,
+        duration_minutes: parseInt(formData.duration_minutes) || 0,
+        categoryId: formData.categoryId || undefined,
         fileIds: formData.fileIds.length > 0 ? formData.fileIds : undefined,
       };
 
@@ -134,8 +183,16 @@ export default function CoursesPage() {
       setFormData({
         title: '',
         description: '',
+        markdown_content: '',
+        keywords: [],
+        thumbnail: '',
+        is_active: true,
+        sort_order: '0',
+        duration_minutes: '0',
+        categoryId: '',
         fileIds: [],
       });
+      setKeywordInput('');
       setEditingCourseId(null);
       setIsModalOpen(false);
       setErrors({});
@@ -223,8 +280,16 @@ export default function CoursesPage() {
           setFormData({
             title: '',
             description: '',
+            markdown_content: '',
+            keywords: [],
+            thumbnail: '',
+            is_active: true,
+            sort_order: '0',
+            duration_minutes: '0',
+            categoryId: '',
             fileIds: [],
           });
+          setKeywordInput('');
           setErrors({});
         }}
         title={editingCourseId ? 'ویرایش دوره' : 'افزودن دوره جدید'}
@@ -251,6 +316,118 @@ export default function CoursesPage() {
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              محتوای Markdown
+            </label>
+            <textarea
+              name="markdown_content"
+              value={formData.markdown_content}
+              onChange={handleInputChange}
+              rows={5}
+              placeholder="# عنوان دوره\n\nمحتوای کامل..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              کلمات کلیدی
+            </label>
+            <div className="flex gap-2 mb-2">
+              <Input
+                placeholder="کلمه کلیدی را وارد کنید و Enter بزنید"
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                onKeyPress={handleKeywordInputKeyPress}
+              />
+              <Button type="button" variant="outline" onClick={handleAddKeyword}>
+                افزودن
+              </Button>
+            </div>
+            {formData.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.keywords.map((keyword, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  >
+                    {keyword}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveKeyword(keyword)}
+                      className="text-blue-600 hover:text-blue-800 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="مدت زمان (دقیقه)"
+              name="duration_minutes"
+              type="number"
+              min="0"
+              value={formData.duration_minutes}
+              onChange={handleInputChange}
+            />
+
+            <Input
+              label="ترتیب نمایش"
+              name="sort_order"
+              type="number"
+              min="0"
+              value={formData.sort_order}
+              onChange={handleInputChange}
+            />
+          </div>
+
+          <Input
+            label="تصویر شاخص (مسیر فایل)"
+            name="thumbnail"
+            value={formData.thumbnail}
+            onChange={handleInputChange}
+            placeholder="مثلاً: thumbnail.jpg"
+          />
+
+          {categories.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                دسته‌بندی دوره
+              </label>
+              <select
+                name="categoryId"
+                value={formData.categoryId}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">بدون دسته‌بندی</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="is_active"
+                checked={formData.is_active}
+                onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
+                className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-700">دوره فعال است</span>
+            </label>
           </div>
 
           {files.length > 0 && (
