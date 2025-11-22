@@ -375,6 +375,19 @@ export class AdminApiClient {
     return this.delete<void>(`/user/${id}`);
   }
 
+  // User Purchases endpoints (Admin)
+  async getUserPurchases(userId: string): Promise<UserPurchase[]> {
+    return this.get<UserPurchase[]>(`/user/${userId}/purchases`);
+  }
+
+  async addProductToUser(userId: string, productId: string): Promise<UserPurchase> {
+    return this.post<UserPurchase>(`/user/${userId}/purchases`, { productId });
+  }
+
+  async removeProductFromUser(userId: string, productId: string): Promise<void> {
+    return this.delete<void>(`/user/${userId}/purchases/${productId}`);
+  }
+
   // Transaction endpoints (Admin)
   async getTransactions(): Promise<Transaction[]> {
     return this.get<Transaction[]>('/transaction');
@@ -432,6 +445,16 @@ export class AdminApiClient {
   async deleteCategory(id: string): Promise<void> {
     return this.delete<void>(`/categories/${id}`);
   }
+}
+
+export interface UserPurchase {
+  id: string;
+  user_id?: string;
+  product_id?: string;
+  purchased_at: string;
+  user?: User;
+  product?: Product;
+  transaction?: Transaction | null;
 }
 
 export const adminApiClient = new AdminApiClient();

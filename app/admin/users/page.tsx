@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, User } from '@/lib/api';
+import { adminApiClient, User, UserPurchase, Product } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -26,6 +26,12 @@ export default function UsersPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProductsModalOpen, setIsProductsModalOpen] = useState(false);
+  const [userPurchases, setUserPurchases] = useState<UserPurchase[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [addingProduct, setAddingProduct] = useState(false);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -152,6 +158,82 @@ export default function UsersPage() {
     }
   };
 
+  const handleManageProducts = async (userId: string) => {
+    try {
+      setEditingUser(users.find(u => u.id === userId) || null);
+      setLoadingPurchases(true);
+      setIsProductsModalOpen(true);
+      
+      // Fetch user purchases and all products in parallel
+      const [purchases, products] = await Promise.all([
+        adminApiClient.getUserPurchases(userId),
+        adminApiClient.getProducts(),
+      ]);
+      
+      setUserPurchases(purchases);
+      setAllProducts(products);
+      setSelectedProductId('');
+    } catch (error: any) {
+      console.error('Error fetching user purchases:', error);
+      alert(error.message || 'خطا در بارگذاری محصولات کاربر');
+    } finally {
+      setLoadingPurchases(false);
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!editingUser || !selectedProductId) {
+      alert('لطفا محصولی را انتخاب کنید');
+      return;
+    }
+
+    // Check if user already has this product
+    const alreadyHas = userPurchases.some(
+      p => p.product?.id === selectedProductId || p.product_id === selectedProductId
+    );
+    
+    if (alreadyHas) {
+      alert('کاربر قبلاً این محصول را دارد');
+      return;
+    }
+
+    setAddingProduct(true);
+    try {
+      await adminApiClient.addProductToUser(editingUser.id, selectedProductId);
+      alert('محصول با موفقیت به کاربر اضافه شد');
+      
+      // Refresh purchases list
+      const purchases = await adminApiClient.getUserPurchases(editingUser.id);
+      setUserPurchases(purchases);
+      setSelectedProductId('');
+    } catch (error: any) {
+      console.error('Error adding product:', error);
+      alert(error.message || 'خطا در اضافه کردن محصول');
+    } finally {
+      setAddingProduct(false);
+    }
+  };
+
+  const handleRemoveProduct = async (productId: string) => {
+    if (!editingUser) return;
+    
+    if (!confirm('آیا مطمئن هستید که می‌خواهید این محصول را از کاربر حذف کنید؟')) {
+      return;
+    }
+
+    try {
+      await adminApiClient.removeProductFromUser(editingUser.id, productId);
+      alert('محصول با موفقیت از کاربر حذف شد');
+      
+      // Refresh purchases list
+      const purchases = await adminApiClient.getUserPurchases(editingUser.id);
+      setUserPurchases(purchases);
+    } catch (error: any) {
+      console.error('Error removing product:', error);
+      alert(error.message || 'خطا در حذف محصول');
+    }
+  };
+
   if (loading || loadingUsers) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -208,6 +290,14 @@ export default function UsersPage() {
                     onClick={() => handleEdit(u.id)}
                   >
                     ویرایش
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="ml-2"
+                    onClick={() => handleManageProducts(u.id)}
+                  >
+                    محصولات
                   </Button>
                   <Button 
                     variant="danger" 
@@ -365,6 +455,100 @@ export default function UsersPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Products Management Modal */}
+      <Modal
+        isOpen={isProductsModalOpen}
+        onClose={() => {
+          setIsProductsModalOpen(false);
+          setEditingUser(null);
+          setUserPurchases([]);
+          setSelectedProductId('');
+        }}
+        title={`مدیریت محصولات کاربر: ${editingUser?.first_name} ${editingUser?.last_name}`}
+        size="lg"
+      >
+        {loadingPurchases ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600 dark:text-gray-400">در حال بارگذاری...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Add Product Section */}
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">افزودن محصول</h3>
+              <div className="flex gap-2">
+                <select
+                  value={selectedProductId}
+                  onChange={(e) => setSelectedProductId(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                >
+                  <option value="">انتخاب محصول...</option>
+                  {allProducts
+                    .filter(p => !userPurchases.some(up => up.product?.id === p.id || up.product_id === p.id))
+                    .map(product => (
+                      <option key={product.id} value={product.id}>
+                        {product.title} - ${product.price}
+                      </option>
+                    ))}
+                </select>
+                <Button
+                  onClick={handleAddProduct}
+                  isLoading={addingProduct}
+                  disabled={!selectedProductId || addingProduct}
+                >
+                  افزودن
+                </Button>
+              </div>
+            </div>
+
+            {/* User Purchases List */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+                محصولات کاربر ({userPurchases.length})
+              </h3>
+              {userPurchases.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  این کاربر هیچ محصولی ندارد
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {userPurchases.map((purchase) => {
+                    const product = purchase.product;
+                    if (!product) return null;
+                    
+                    return (
+                      <Card key={purchase.id} className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                              {product.title}
+                            </h4>
+                            <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              <p>قیمت: ${product.price}</p>
+                              <p>نرخ برد: {product.winrate}%</p>
+                              <p className="text-xs">
+                                تاریخ خرید: {new Date(purchase.purchased_at).toLocaleDateString('fa-IR')}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleRemoveProduct(product.id)}
+                          >
+                            حذف
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
