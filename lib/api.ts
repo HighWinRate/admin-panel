@@ -47,6 +47,7 @@ export interface Course {
   id: string;
   title: string;
   description: string;
+  markdown_description?: string;
   markdown_content?: string;
   keywords?: string[];
   duration_minutes?: number;

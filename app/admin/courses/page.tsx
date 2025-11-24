@@ -24,6 +24,7 @@ export default function CoursesPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    markdown_description: '',
     markdown_content: '',
     keywords: [] as string[],
     thumbnail: '',
@@ -132,6 +133,7 @@ export default function CoursesPage() {
       setFormData({
         title: course.title || '',
         description: course.description || '',
+        markdown_description: (course as any).markdown_description || '',
         markdown_content: course.markdown_content || '',
         keywords: course.keywords || [],
         thumbnail: course.thumbnail || '',
@@ -205,6 +207,7 @@ export default function CoursesPage() {
       setFormData({
         title: '',
         description: '',
+        markdown_description: '',
         markdown_content: '',
         keywords: [],
         thumbnail: '',
@@ -312,21 +315,22 @@ export default function CoursesPage() {
           setIsModalOpen(false);
           setEditingCourseId(null);
           setFormData({
-            title: '',
-            description: '',
-            markdown_content: '',
-            keywords: [],
-            thumbnail: '',
-            is_active: true,
-            sort_order: '0',
-            duration_minutes: '0',
-            categoryId: '',
-            fileIds: [],
-          });
-          setThumbnailFile(null);
-          setThumbnailPreview(null);
-          setKeywordInput('');
-          setErrors({});
+        title: '',
+        description: '',
+        markdown_description: '',
+        markdown_content: '',
+        keywords: [],
+        thumbnail: '',
+        is_active: true,
+        sort_order: '0',
+        duration_minutes: '0',
+        categoryId: '',
+        fileIds: [],
+      });
+      setThumbnailFile(null);
+      setThumbnailPreview(null);
+      setKeywordInput('');
+      setErrors({});
         }}
         title={editingCourseId ? 'ویرایش دوره' : 'افزودن دوره جدید'}
         size="lg"
@@ -351,6 +355,20 @@ export default function CoursesPage() {
               onChange={handleInputChange}
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              توضیحات Markdown
+            </label>
+            <textarea
+              name="markdown_description"
+              value={formData.markdown_description}
+              onChange={handleInputChange}
+              rows={5}
+              placeholder="# توضیحات دوره\n\nتوضیحات کامل به صورت Markdown..."
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
             />
           </div>
 
