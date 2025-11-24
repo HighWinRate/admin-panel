@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 export default function CoursesPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
@@ -33,6 +35,8 @@ export default function CoursesPage() {
   });
   const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -137,6 +141,13 @@ export default function CoursesPage() {
         categoryId: course.category?.id || '',
         fileIds: course.files?.map((f) => f.id) || [],
       });
+      // Set thumbnail preview if exists
+      if (course.thumbnail) {
+        setThumbnailPreview(`${API_URL}/course/${courseId}/thumbnail`);
+      } else {
+        setThumbnailPreview(null);
+      }
+      setThumbnailFile(null);
       setEditingCourseId(courseId);
       setIsModalOpen(true);
     } catch (error: any) {
@@ -167,12 +178,23 @@ export default function CoursesPage() {
         fileIds: formData.fileIds.length > 0 ? formData.fileIds : undefined,
       };
 
+      let createdOrUpdatedCourse: Course;
       if (editingCourseId) {
         // Update existing course
-        await adminApiClient.updateCourse(editingCourseId, courseData);
+        createdOrUpdatedCourse = await adminApiClient.updateCourse(editingCourseId, courseData);
+        
+        // Upload thumbnail if selected
+        if (thumbnailFile) {
+          await adminApiClient.uploadCourseThumbnail(editingCourseId, thumbnailFile);
+        }
       } else {
         // Create new course
-        await adminApiClient.createCourse(courseData);
+        createdOrUpdatedCourse = await adminApiClient.createCourse(courseData);
+        
+        // Upload thumbnail if selected
+        if (thumbnailFile && createdOrUpdatedCourse.id) {
+          await adminApiClient.uploadCourseThumbnail(createdOrUpdatedCourse.id, thumbnailFile);
+        }
       }
       
       // Refresh courses list
@@ -245,6 +267,18 @@ export default function CoursesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map((course) => (
           <Card key={course.id} className="p-6">
+            {course.thumbnail && (
+              <div className="mb-4 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
+                <img
+                  src={`${API_URL}/course/${course.id}/thumbnail`}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
             <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{course.description}</p>
             {course.duration_minutes && (
@@ -289,6 +323,8 @@ export default function CoursesPage() {
             categoryId: '',
             fileIds: [],
           });
+          setThumbnailFile(null);
+          setThumbnailPreview(null);
           setKeywordInput('');
           setErrors({});
         }}
@@ -388,13 +424,73 @@ export default function CoursesPage() {
             />
           </div>
 
-          <Input
-            label="تصویر شاخص (مسیر فایل)"
-            name="thumbnail"
-            value={formData.thumbnail}
-            onChange={handleInputChange}
-            placeholder="مثلاً: thumbnail.jpg"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              تصویر شاخص
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setThumbnailFile(file);
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setThumbnailPreview(reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="block w-full text-sm text-gray-500 dark:text-gray-400
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-lg file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100
+                dark:file:bg-blue-900 dark:file:text-blue-300
+                dark:hover:file:bg-blue-800
+                cursor-pointer"
+            />
+            {thumbnailPreview && (
+              <div className="mt-4">
+                <img
+                  src={thumbnailPreview}
+                  alt="Thumbnail preview"
+                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                />
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    setThumbnailFile(null);
+                    setThumbnailPreview(null);
+                    if (editingCourseId && formData.thumbnail) {
+                      // Keep existing thumbnail preview
+                      setThumbnailPreview(`${API_URL}/course/${editingCourseId}/thumbnail`);
+                    }
+                  }}
+                  className="mt-2"
+                >
+                  حذف تصویر
+                </Button>
+              </div>
+            )}
+            {!thumbnailPreview && editingCourseId && formData.thumbnail && (
+              <div className="mt-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">تصویر فعلی:</p>
+                <img
+                  src={`${API_URL}/course/${editingCourseId}/thumbnail`}
+                  alt="Current thumbnail"
+                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+          </div>
 
           {categories.length > 0 && (
             <div>

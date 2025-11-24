@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 export default function ProductsPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
@@ -40,6 +42,8 @@ export default function ProductsPage() {
   });
   const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -164,6 +168,13 @@ export default function ProductsPage() {
         is_active: product.is_active ?? true,
         sort_order: product.sort_order?.toString() || '0',
       });
+      // Set thumbnail preview if exists
+      if (product.thumbnail) {
+        setThumbnailPreview(`${API_URL}/product/${productId}/thumbnail`);
+      } else {
+        setThumbnailPreview(null);
+      }
+      setThumbnailFile(null);
       setEditingProductId(productId);
       setIsModalOpen(true);
     } catch (error: any) {
@@ -215,12 +226,23 @@ export default function ProductsPage() {
         sort_order: parseInt(formData.sort_order) || 0,
       };
 
+      let createdOrUpdatedProduct: Product;
       if (editingProductId) {
         // Update existing product
-        await adminApiClient.updateProduct(editingProductId, productData);
+        createdOrUpdatedProduct = await adminApiClient.updateProduct(editingProductId, productData);
+        
+        // Upload thumbnail if selected
+        if (thumbnailFile) {
+          await adminApiClient.uploadProductThumbnail(editingProductId, thumbnailFile);
+        }
       } else {
         // Create new product
-        await adminApiClient.createProduct(productData);
+        createdOrUpdatedProduct = await adminApiClient.createProduct(productData);
+        
+        // Upload thumbnail if selected
+        if (thumbnailFile && createdOrUpdatedProduct.id) {
+          await adminApiClient.uploadProductThumbnail(createdOrUpdatedProduct.id, thumbnailFile);
+        }
       }
       
       // Refresh products list
@@ -247,6 +269,8 @@ export default function ProductsPage() {
         is_active: true,
         sort_order: '0',
       });
+      setThumbnailFile(null);
+      setThumbnailPreview(null);
       setKeywordInput('');
       setEditingProductId(null);
       setIsModalOpen(false);
@@ -300,6 +324,18 @@ export default function ProductsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((product) => (
           <Card key={product.id} className="p-6">
+            {product.thumbnail && (
+              <div className="mb-4 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
+                <img
+                  src={`${API_URL}/product/${product.id}/thumbnail`}
+                  alt={product.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
             <h3 className="text-xl font-semibold mb-2">{product.title}</h3>
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{product.description}</p>
             <div className="flex justify-between items-center mb-4">
@@ -531,13 +567,73 @@ export default function ProductsPage() {
             />
           </div>
 
-          <Input
-            label="تصویر شاخص (مسیر فایل)"
-            name="thumbnail"
-            value={formData.thumbnail}
-            onChange={handleInputChange}
-            placeholder="مثلاً: thumbnail.jpg"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              تصویر شاخص
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setThumbnailFile(file);
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setThumbnailPreview(reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="block w-full text-sm text-gray-500 dark:text-gray-400
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-lg file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100
+                dark:file:bg-blue-900 dark:file:text-blue-300
+                dark:hover:file:bg-blue-800
+                cursor-pointer"
+            />
+            {thumbnailPreview && (
+              <div className="mt-4">
+                <img
+                  src={thumbnailPreview}
+                  alt="Thumbnail preview"
+                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                />
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    setThumbnailFile(null);
+                    setThumbnailPreview(null);
+                    if (editingProductId && formData.thumbnail) {
+                      // Keep existing thumbnail preview
+                      setThumbnailPreview(`${API_URL}/product/${editingProductId}/thumbnail`);
+                    }
+                  }}
+                  className="mt-2"
+                >
+                  حذف تصویر
+                </Button>
+              </div>
+            )}
+            {!thumbnailPreview && editingProductId && formData.thumbnail && (
+              <div className="mt-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">تصویر فعلی:</p>
+                <img
+                  src={`${API_URL}/product/${editingProductId}/thumbnail`}
+                  alt="Current thumbnail"
+                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="flex items-center">

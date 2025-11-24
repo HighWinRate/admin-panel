@@ -281,6 +281,12 @@ export class AdminApiClient {
     return this.delete<void>(`/product/${id}`);
   }
 
+  async uploadProductThumbnail(productId: string, file: File): Promise<Product> {
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+    return this.requestFormData<Product>(`/product/${productId}/thumbnail`, formData);
+  }
+
   // Course endpoints (Admin)
   async getCourses(): Promise<Course[]> {
     return this.get<Course[]>('/course');
@@ -300,6 +306,12 @@ export class AdminApiClient {
 
   async deleteCourse(id: string): Promise<void> {
     return this.delete<void>(`/course/${id}`);
+  }
+
+  async uploadCourseThumbnail(courseId: string, file: File): Promise<Course> {
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+    return this.requestFormData<Course>(`/course/${courseId}/thumbnail`, formData);
   }
 
   // File endpoints (Admin)
