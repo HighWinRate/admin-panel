@@ -458,6 +458,75 @@ export class AdminApiClient {
   async deleteCategory(id: string): Promise<void> {
     return this.delete<void>(`/categories/${id}`);
   }
+
+  // Ticket endpoints (Admin)
+  async getTickets(params?: {
+    page?: number;
+    limit?: number;
+    status?: TicketStatus;
+    priority?: TicketPriority;
+    type?: TicketType;
+    userId?: string;
+    assignedToId?: string;
+  }): Promise<TicketListResponse> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.priority) queryParams.append('priority', params.priority);
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.userId) queryParams.append('userId', params.userId);
+    if (params?.assignedToId) queryParams.append('assignedToId', params.assignedToId);
+    
+    const query = queryParams.toString();
+    return this.get<TicketListResponse>(`/tickets${query ? `?${query}` : ''}`);
+  }
+
+  async getTicket(id: string): Promise<Ticket> {
+    return this.get<Ticket>(`/tickets/${id}`);
+  }
+
+  async getTicketByReference(referenceNumber: string): Promise<Ticket> {
+    return this.get<Ticket>(`/tickets/reference/${referenceNumber}`);
+  }
+
+  async updateTicket(id: string, data: {
+    subject?: string;
+    description?: string;
+    status?: TicketStatus;
+    priority?: TicketPriority;
+    type?: TicketType;
+  }): Promise<Ticket> {
+    return this.patch<Ticket>(`/tickets/${id}`, data);
+  }
+
+  async deleteTicket(id: string): Promise<void> {
+    return this.delete<void>(`/tickets/${id}`);
+  }
+
+  async assignTicket(id: string, assignedToId: string): Promise<Ticket> {
+    return this.patch<Ticket>(`/tickets/${id}/assign`, { assignedToId });
+  }
+
+  async getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
+    return this.get<TicketMessage[]>(`/tickets/${ticketId}/messages`);
+  }
+
+  async createTicketMessage(ticketId: string, data: {
+    content: string;
+    type?: MessageType;
+    is_internal?: boolean;
+  }): Promise<TicketMessage> {
+    return this.post<TicketMessage>(`/tickets/${ticketId}/messages`, data);
+  }
+
+  async deleteTicketMessage(messageId: string): Promise<void> {
+    return this.delete<void>(`/tickets/messages/${messageId}`);
+  }
+
+  async getTicketStatistics(): Promise<TicketStatistics> {
+    return this.get<TicketStatistics>('/tickets/statistics');
+  }
 }
 
 export interface UserPurchase {
@@ -468,6 +537,68 @@ export interface UserPurchase {
   user?: User;
   product?: Product;
   transaction?: Transaction | null;
+}
+
+export type TicketStatus = 'open' | 'in_progress' | 'waiting_for_user' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TicketType = 'technical' | 'billing' | 'general' | 'feature_request' | 'bug_report';
+export type MessageType = 'user' | 'support' | 'system';
+
+export interface Ticket {
+  id: string;
+  subject: string;
+  description: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  type: TicketType;
+  reference_number?: string;
+  user?: User;
+  assigned_to?: User | null;
+  messages?: TicketMessage[];
+  resolved_at?: string | null;
+  closed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  content: string;
+  type: MessageType;
+  is_internal: boolean;
+  user?: User | null;
+  ticket?: Ticket;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketListResponse {
+  tickets: Ticket[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface TicketStatistics {
+  total: number;
+  open: number;
+  in_progress: number;
+  waiting_for_user: number;
+  resolved: number;
+  closed: number;
+  by_priority: {
+    low: number;
+    medium: number;
+    high: number;
+    urgent: number;
+  };
+  by_type: {
+    technical: number;
+    billing: number;
+    general: number;
+    feature_request: number;
+    bug_report: number;
+  };
 }
 
 export const adminApiClient = new AdminApiClient();

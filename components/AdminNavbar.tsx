@@ -35,6 +35,9 @@ export function AdminNavbar() {
                 <Link href="/admin/users" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                   کاربران
                 </Link>
+                <Link href="/admin/tickets" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  تیکت‌ها
+                </Link>
                 {user && (
                   <span className="text-gray-700 dark:text-gray-300">
                     {user.first_name} {user.last_name}
