@@ -7,6 +7,7 @@ import { adminApiClient, File, Course, Product } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { API_URL } from '@/lib/constants';
 
 export default function FilesPage() {
   const router = useRouter();
@@ -221,7 +222,7 @@ export default function FilesPage() {
 
   const handleDownload = async (file: File) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = API_URL;
       const token = adminApiClient.getToken();
       
       if (!token) {
