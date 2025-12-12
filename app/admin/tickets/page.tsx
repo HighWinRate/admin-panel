@@ -22,6 +22,9 @@ export default function TicketsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [updating, setUpdating] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -78,6 +81,7 @@ export default function TicketsPage() {
       if (selectedTicket?.id === ticketId) {
         const updated = await adminApiClient.getTicket(ticketId);
         setSelectedTicket(updated);
+        await fetchMessages(ticketId);
       }
     } catch (error: any) {
       alert(error.message || 'خطا در به‌روزرسانی وضعیت');
@@ -94,6 +98,7 @@ export default function TicketsPage() {
       if (selectedTicket?.id === ticketId) {
         const updated = await adminApiClient.getTicket(ticketId);
         setSelectedTicket(updated);
+        await fetchMessages(ticketId);
       }
     } catch (error: any) {
       alert(error.message || 'خطا در اختصاص تیکت');
@@ -107,8 +112,43 @@ export default function TicketsPage() {
       const fullTicket = await adminApiClient.getTicket(ticket.id);
       setSelectedTicket(fullTicket);
       setIsDetailModalOpen(true);
+      // Fetch messages separately
+      await fetchMessages(ticket.id);
     } catch (error) {
       console.error('Error fetching ticket details:', error);
+    }
+  }
+
+  async function fetchMessages(ticketId: string) {
+    try {
+      const data = await adminApiClient.getTicketMessages(ticketId);
+      setMessages(data);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  }
+
+  async function handleSendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedTicket) return;
+
+    setSendingMessage(true);
+    try {
+      await adminApiClient.createTicketMessage(selectedTicket.id, {
+        content: newMessage.trim(),
+        type: 'support',
+        is_internal: false,
+      });
+      setNewMessage('');
+      await fetchMessages(selectedTicket.id);
+      // Refresh ticket to get updated status
+      const updated = await adminApiClient.getTicket(selectedTicket.id);
+      setSelectedTicket(updated);
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      alert(error.message || 'خطا در ارسال پیام');
+    } finally {
+      setSendingMessage(false);
     }
   }
 
@@ -292,6 +332,8 @@ export default function TicketsPage() {
           onClose={() => {
             setIsDetailModalOpen(false);
             setSelectedTicket(null);
+            setNewMessage('');
+            setMessages([]);
           }}
           title={`تیکت: ${selectedTicket.subject}`}
         >
@@ -346,33 +388,88 @@ export default function TicketsPage() {
               </div>
             </div>
 
-            {selectedTicket.messages && selectedTicket.messages.length > 0 && (
-              <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
-                  پیام‌ها ({selectedTicket.messages.length})
-                </h4>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {selectedTicket.messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                    >
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {msg.user ? `${msg.user.first_name} ${msg.user.last_name}` : 'سیستم'}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(msg.created_at).toLocaleDateString('fa-IR')}
-                        </span>
+            {/* Messages Section */}
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+                پیام‌ها ({messages.length})
+              </h4>
+              <div className="space-y-3 max-h-64 overflow-y-auto mb-4">
+                {messages.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                    هیچ پیامی وجود ندارد
+                  </p>
+                ) : (
+                  messages.map((msg) => {
+                    const isSupportMessage = msg.type === 'support';
+                    const isUserMessage = msg.type === 'user';
+                    
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`p-3 rounded-lg ${
+                          isSupportMessage
+                            ? 'bg-green-50 dark:bg-green-900/20 border-r-4 border-green-500'
+                            : isUserMessage
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border-r-4 border-blue-500'
+                            : 'bg-gray-50 dark:bg-gray-800'
+                        }`}
+                      >
+                        <div className="flex justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {msg.user ? `${msg.user.first_name} ${msg.user.last_name}` : 'سیستم'}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                              {msg.type === 'support' ? 'پشتیبانی' : msg.type === 'user' ? 'کاربر' : 'سیستم'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(msg.created_at).toLocaleDateString('fa-IR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          {msg.content}
+                        </p>
                       </div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        {msg.content}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                    );
+                  })
+                )}
               </div>
-            )}
+
+              {/* Send Message Form */}
+              {selectedTicket.status !== 'closed' && (
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <h5 className="font-semibold text-gray-900 dark:text-white mb-3">
+                    ارسال پیام جدید
+                  </h5>
+                  <form onSubmit={handleSendMessage} className="space-y-3">
+                    <textarea
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="پیام خود را وارد کنید..."
+                      rows={4}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        isLoading={sendingMessage}
+                        className="bg-primary-600 hover:bg-primary-700 text-white"
+                      >
+                        ارسال پیام
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
           </div>
         </Modal>
       )}
