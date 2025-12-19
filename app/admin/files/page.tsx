@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, File, Course, Product } from '@/lib/api';
+import { adminApiClient, File as FileType, Course, Product } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -12,14 +12,14 @@ import { API_URL } from '@/lib/constants';
 export default function FilesPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileType[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [loadingData, setLoadingData] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingFile, setEditingFile] = useState<File | null>(null);
+  const [editingFile, setEditingFile] = useState<FileType | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -28,7 +28,7 @@ export default function FilesPage() {
   const [editSuccess, setEditSuccess] = useState(false);
   
   // Upload form state
-  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [fileToUpload, setFileToUpload] = useState<globalThis.File | null>(null);
   const [fileName, setFileName] = useState('');
   const [fileType, setFileType] = useState<'video' | 'pdf' | 'docx' | 'zip'>('pdf');
   const [isFree, setIsFree] = useState(false);
@@ -44,12 +44,12 @@ export default function FilesPage() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
     if (user && user.role !== 'admin') {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
@@ -153,7 +153,7 @@ export default function FilesPage() {
     }
   };
 
-  const handleEdit = async (file: File) => {
+  const handleEdit = async (file: FileType) => {
     setEditingFile(file);
     setEditFileName(file.name);
     setEditFileType(file.type as 'video' | 'pdf' | 'docx' | 'zip');
@@ -220,7 +220,7 @@ export default function FilesPage() {
     }
   };
 
-  const handleDownload = async (file: File) => {
+  const handleDownload = async (file: FileType) => {
     try {
       const apiUrl = API_URL;
       const token = adminApiClient.getToken();

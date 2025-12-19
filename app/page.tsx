@@ -9,11 +9,12 @@ export default function HomePage() {
   const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
+    // Only redirect once when loading is complete
     if (!loading) {
       if (isAuthenticated) {
-        router.push('/dashboard');
+        router.replace('/dashboard');
       } else {
-        router.push('/login');
+        router.replace('/login');
       }
     }
   }, [isAuthenticated, loading, router]);

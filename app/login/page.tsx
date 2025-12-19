@@ -16,8 +16,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Only redirect if we're sure about auth state
     if (!loading && isAuthenticated) {
-      router.push('/dashboard');
+      // Use replace instead of push to avoid adding to history
+      router.replace('/dashboard');
     }
   }, [isAuthenticated, loading, router]);
 

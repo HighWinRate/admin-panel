@@ -28,12 +28,12 @@ export default function TicketsPage() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
     if (user && user.role !== 'admin' && user.role !== 'support') {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 

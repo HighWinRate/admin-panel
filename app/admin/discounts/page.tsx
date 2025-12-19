@@ -32,12 +32,12 @@ export default function DiscountsPage() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
     if (user && user.role !== 'admin') {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Course, File, Category } from '@/lib/api';
+import { adminApiClient, Course, File as FileType, Category } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,7 +14,7 @@ export default function CoursesPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileType[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,17 +35,17 @@ export default function CoursesPage() {
   });
   const [keywordInput, setKeywordInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<globalThis.File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
     if (user && user.role !== 'admin') {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
@@ -579,6 +579,14 @@ export default function CoursesPage() {
                 setFormData({
                   title: '',
                   description: '',
+                  markdown_description: '',
+                  markdown_content: '',
+                  keywords: [],
+                  thumbnail: '',
+                  is_active: true,
+                  sort_order: '0',
+                  duration_minutes: '0',
+                  categoryId: '',
                   fileIds: [],
                 });
                 setErrors({});

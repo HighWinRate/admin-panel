@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { adminApiClient, User } from '@/lib/api';
+import { createClient } from '@/lib/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -16,40 +17,101 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    // Check if user is logged in
-    const token = adminApiClient.getToken();
-    if (token) {
-      // Try to decode JWT to get user info
+    let isMounted = true;
+    let subscription: { unsubscribe: () => void } | null = null;
+    let isInitialized = false;
+
+    // Function to fetch user profile
+    const fetchUserProfile = async (userId: string, accessToken: string) => {
+      if (!isMounted) return;
+      
+      adminApiClient.setToken(accessToken);
+      
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        // Set user from token payload (basic info)
-        setUser({
-          id: payload.sub,
-          email: payload.email,
-          first_name: '', // Will be updated when we fetch full user data
-          last_name: '',
-          role: payload.role,
-        });
+        const fullUser = await adminApiClient.getUser(userId);
+        if (isMounted) {
+          setUser(fullUser);
+        }
       } catch (error) {
-        console.error('Error decoding token:', error);
-        // If token is invalid, clear it
-        adminApiClient.logout();
+        console.error('Error fetching user data:', error);
+        // If fetch fails, use basic info from Supabase
+        if (isMounted) {
+          // We'll set user from session in onAuthStateChange if needed
+        }
       }
-    }
-    setLoading(false);
+    };
+
+    // Check Supabase session once on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted || isInitialized) return;
+      isInitialized = true;
+      
+      if (session && session.user) {
+        fetchUserProfile(session.user.id, session.access_token).finally(() => {
+          if (isMounted) {
+            setLoading(false);
+          }
+        });
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen for auth changes (only significant changes)
+    const {
+      data: { subscription: authSubscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+      
+      // Only handle significant auth events to avoid loops
+      if (event === 'SIGNED_IN') {
+        if (session && session.user) {
+          fetchUserProfile(session.user.id, session.access_token);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        adminApiClient.setToken(null);
+        setUser(null);
+        setLoading(false);
+      }
+      // Ignore TOKEN_REFRESHED and other events to reduce requests
+    });
+
+    subscription = authSubscription;
+
+    return () => {
+      isMounted = false;
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await adminApiClient.login({ email, password });
-    if (response.access_token) {
-      adminApiClient.setToken(response.access_token);
+    // Use Supabase Auth for login
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
-    setUser(response.user);
+
+    if (data.session) {
+      // Set token in API client
+      adminApiClient.setToken(data.session.access_token);
+      
+      // Fetch user profile from our API
+      const fullUser = await adminApiClient.getUser(data.user.id);
+      setUser(fullUser);
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     adminApiClient.logout();
     setUser(null);
   };

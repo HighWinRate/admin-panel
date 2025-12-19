@@ -282,7 +282,7 @@ export class AdminApiClient {
     return this.delete<void>(`/product/${id}`);
   }
 
-  async uploadProductThumbnail(productId: string, file: File): Promise<Product> {
+  async uploadProductThumbnail(productId: string, file: globalThis.File): Promise<Product> {
     const formData = new FormData();
     formData.append('thumbnail', file);
     return this.requestFormData<Product>(`/product/${productId}/thumbnail`, formData);
@@ -309,7 +309,7 @@ export class AdminApiClient {
     return this.delete<void>(`/course/${id}`);
   }
 
-  async uploadCourseThumbnail(courseId: string, file: File): Promise<Course> {
+  async uploadCourseThumbnail(courseId: string, file: globalThis.File): Promise<Course> {
     const formData = new FormData();
     formData.append('thumbnail', file);
     return this.requestFormData<Course>(`/course/${courseId}/thumbnail`, formData);
@@ -317,7 +317,7 @@ export class AdminApiClient {
 
   // File endpoints (Admin)
   async uploadFile(
-    file: File,
+    file: globalThis.File,
     data: {
       name: string;
       type: 'video' | 'pdf' | 'docx' | 'zip';
