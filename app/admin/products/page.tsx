@@ -719,6 +719,12 @@ export default function ProductsPage() {
                   trading_style: '',
                   trading_session: '',
                   categoryId: '',
+                  backtest_trades_count: '',
+                  markdown_description: '',
+                  backtest_results: '',
+                  thumbnail: '',
+                  is_active: true,
+                  sort_order: '0',
                 });
                 setKeywordInput('');
                 setErrors({});

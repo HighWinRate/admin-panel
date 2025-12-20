@@ -95,6 +95,10 @@ export interface Transaction {
   cryptoAmount?: number;
   cryptoCurrency?: string;
   created_at: string;
+  paid_at?: string;
+  discount_amount?: number;
+  tx_hash?: string;
+  gateway?: string;
   user?: User;
   product?: Product;
 }
