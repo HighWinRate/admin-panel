@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminApiClient, Product, Course, User, Transaction } from '@/lib/api';
-import { Card } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -69,7 +70,8 @@ export default function DashboardPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
-          <p className="text-gray-600">در حال بارگذاری...</p>
+          <Skeleton className="h-6 w-48 mx-auto mb-4" />
+          <Skeleton className="h-4 w-32 mx-auto" />
         </div>
       </div>
     );
@@ -81,58 +83,78 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">
+      <h1 className="text-3xl font-bold mb-8">
         داشبورد مدیریت
       </h1>
-      <p className="text-gray-600 mb-8">
+      <p className="text-muted-foreground mb-8">
         خوش آمدید {user.first_name} {user.last_name}
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">محصولات</h3>
-          <p className="text-3xl font-bold text-blue-600">{stats.products}</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">محصولات</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-primary">{stats.products}</p>
+          </CardContent>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">دوره‌ها</h3>
-          <p className="text-3xl font-bold text-green-600">{stats.courses}</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">دوره‌ها</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-primary">{stats.courses}</p>
+          </CardContent>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">کاربران</h3>
-          <p className="text-3xl font-bold text-purple-600">{stats.users}</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">کاربران</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-primary">{stats.users}</p>
+          </CardContent>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">تراکنش‌ها</h3>
-          <p className="text-3xl font-bold text-orange-600">{stats.transactions}</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">تراکنش‌ها</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-primary">{stats.transactions}</p>
+          </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">دسترسی سریع</h2>
-          <div className="space-y-2">
-            <a href="/admin/products" className="block text-blue-600 hover:underline">
-              مدیریت محصولات
-            </a>
-            <a href="/admin/courses" className="block text-blue-600 hover:underline">
-              مدیریت دوره‌ها
-            </a>
-            <a href="/admin/users" className="block text-blue-600 hover:underline">
-              مدیریت کاربران
-            </a>
-            <a href="/admin/transactions" className="block text-blue-600 hover:underline">
-              مدیریت تراکنش‌ها
-            </a>
-            <a href="/admin/discounts" className="block text-blue-600 hover:underline">
-              مدیریت کدهای تخفیف
-            </a>
-            <a href="/admin/files" className="block text-blue-600 hover:underline">
-              مدیریت فایل‌ها
-            </a>
-          </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>دسترسی سریع</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <a href="/admin/products" className="block text-primary hover:underline">
+                مدیریت محصولات
+              </a>
+              <a href="/admin/courses" className="block text-primary hover:underline">
+                مدیریت دوره‌ها
+              </a>
+              <a href="/admin/users" className="block text-primary hover:underline">
+                مدیریت کاربران
+              </a>
+              <a href="/admin/transactions" className="block text-primary hover:underline">
+                مدیریت تراکنش‌ها
+              </a>
+              <a href="/admin/discounts" className="block text-primary hover:underline">
+                مدیریت کدهای تخفیف
+              </a>
+              <a href="/admin/files" className="block text-primary hover:underline">
+                مدیریت فایل‌ها
+              </a>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

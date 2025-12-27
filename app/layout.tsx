@@ -31,7 +31,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <AdminNavbar />
-          <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <main className="min-h-screen bg-background">
             {children}
           </main>
         </AuthProvider>

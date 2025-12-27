@@ -4,10 +4,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminApiClient, Product, Course, Category } from '@/lib/api';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { API_URL } from '@/lib/constants';
 
 export default function ProductsPage() {
@@ -301,7 +310,8 @@ export default function ProductsPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
-          <p className="text-gray-600">در حال بارگذاری...</p>
+          <Skeleton className="h-6 w-48 mx-auto mb-4" />
+          <Skeleton className="h-4 w-32 mx-auto" />
         </div>
       </div>
     );
@@ -314,159 +324,183 @@ export default function ProductsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">مدیریت محصولات</h1>
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+        <h1 className="text-3xl font-bold">مدیریت محصولات</h1>
+        <Button onClick={() => setIsModalOpen(true)}>
           افزودن محصول جدید
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((product) => (
-          <Card key={product.id} className="p-6">
-            {product.thumbnail && (
-              <div className="mb-4 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
-                <img
-                  src={`${API_URL}/product/${product.id}/thumbnail`}
-                  alt={product.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+          <Card key={product.id}>
+            <CardHeader>
+              {product.thumbnail && (
+                <div className="mb-4 h-48 bg-muted rounded-lg overflow-hidden">
+                  <img
+                    src={`${API_URL}/product/${product.id}/thumbnail`}
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <CardTitle className="text-xl mb-2">{product.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm mb-4">{product.description}</p>
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-primary font-semibold">${product.price}</span>
+                <Badge variant="secondary">نرخ برد: {product.winrate}%</Badge>
               </div>
-            )}
-            <h3 className="text-xl font-semibold mb-2">{product.title}</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{product.description}</p>
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-blue-600 dark:text-blue-400 font-semibold">${product.price}</span>
-              <span className="text-green-600 dark:text-green-400">نرخ برد: {product.winrate}%</span>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEdit(product.id)}
-              >
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(product.id)}
+                >
                 ویرایش
               </Button>
               <Button
-                variant="danger"
+                variant="destructive"
                 size="sm"
                 onClick={() => handleDelete(product.id)}
               >
                 حذف
               </Button>
-            </div>
+              </div>
+            </CardContent>
           </Card>
         ))}
       </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingProductId(null);
-          setFormData({
-            title: '',
-            description: '',
-            price: '',
-            winrate: '',
-            discountedPrice: '',
-            discountExpiresAt: '',
-            courseIds: [],
-            keywords: [],
-            trading_style: '',
-            trading_session: '',
-            categoryId: '',
-            backtest_trades_count: '',
-            markdown_description: '',
-            backtest_results: '',
-            thumbnail: '',
-            is_active: true,
-            sort_order: '0',
-          });
-          setKeywordInput('');
-          setErrors({});
-        }}
-        title={editingProductId ? 'ویرایش محصول' : 'افزودن محصول جدید'}
-        size="lg"
-      >
+      <Dialog open={isModalOpen} onOpenChange={(open) => {
+          if (!open) {
+            setIsModalOpen(false);
+            setEditingProductId(null);
+            setFormData({
+              title: '',
+              description: '',
+              price: '',
+              winrate: '',
+              discountedPrice: '',
+              discountExpiresAt: '',
+              courseIds: [],
+              keywords: [],
+              trading_style: '',
+              trading_session: '',
+              categoryId: '',
+              backtest_trades_count: '',
+              markdown_description: '',
+              backtest_results: '',
+              thumbnail: '',
+              is_active: true,
+              sort_order: '0',
+            });
+            setKeywordInput('');
+            setErrors({});
+          }
+        }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingProductId ? 'ویرایش محصول' : 'افزودن محصول جدید'}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="عنوان محصول *"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            error={errors.title}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="title">عنوان محصول *</Label>
+            <Input
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              required
+            />
+            {errors.title && (
+              <p className="text-sm text-destructive">{errors.title}</p>
+            )}
+          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              توضیحات
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="description">توضیحات</Label>
             <textarea
+              id="description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="قیمت (USD) *"
-              name="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={handleInputChange}
-              error={errors.price}
-              required
-            />
-
-            <Input
-              label="نرخ برد (%) *"
-              name="winrate"
-              type="number"
-              step="0.1"
-              min="0"
-              max="100"
-              value={formData.winrate}
-              onChange={handleInputChange}
-              error={errors.winrate}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="قیمت تخفیف (USD)"
-              name="discountedPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.discountedPrice}
-              onChange={handleInputChange}
-            />
-
-            <Input
-              label="تاریخ انقضای تخفیف"
-              name="discountExpiresAt"
-              type="datetime-local"
-              value={formData.discountExpiresAt}
-              onChange={handleInputChange}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                سبک معاملاتی
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="price">قیمت (USD) *</Label>
               <Input
+                id="price"
+                name="price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.price}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.price && (
+                <p className="text-sm text-destructive">{errors.price}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="winrate">نرخ برد (%) *</Label>
+              <Input
+                id="winrate"
+                name="winrate"
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={formData.winrate}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.winrate && (
+                <p className="text-sm text-destructive">{errors.winrate}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="discountedPrice">قیمت تخفیف (USD)</Label>
+              <Input
+                id="discountedPrice"
+                name="discountedPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.discountedPrice}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="discountExpiresAt">تاریخ انقضای تخفیف</Label>
+              <Input
+                id="discountExpiresAt"
+                name="discountExpiresAt"
+                type="datetime-local"
+                value={formData.discountExpiresAt}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="trading_style">سبک معاملاتی</Label>
+              <Input
+                id="trading_style"
                 name="trading_style"
                 placeholder="مثلاً: swing, day, scalping"
                 value={formData.trading_style}
@@ -475,11 +509,10 @@ export default function ProductsPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                جلسه معاملاتی
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="trading_session">جلسه معاملاتی</Label>
               <Input
+                id="trading_session"
                 name="trading_session"
                 placeholder="مثلاً: london, newyork, tokyo"
                 value={formData.trading_session}
@@ -489,12 +522,11 @@ export default function ProductsPage() {
             </div>
           </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                کلمات کلیدی
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="keywordInput">کلمات کلیدی</Label>
               <div className="flex gap-2 mb-2">
                 <Input
+                  id="keywordInput"
                   placeholder="کلمه کلیدی را وارد کنید و Enter بزنید"
                   value={keywordInput}
                   onChange={(e) => setKeywordInput(e.target.value)}
@@ -507,34 +539,30 @@ export default function ProductsPage() {
               {formData.keywords.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.keywords.map((keyword, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full"
-                    >
+                    <Badge key={idx} variant="secondary" className="gap-1">
                       {keyword}
                       <button
                         type="button"
                         onClick={() => handleRemoveKeyword(keyword)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold"
+                        className="hover:text-destructive font-bold"
                       >
                         ×
                       </button>
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               )}
             </div>
 
           {categories.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                دسته‌بندی محصول
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="categoryId">دسته‌بندی محصول</Label>
               <select
+                id="categoryId"
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="">بدون دسته‌بندی</option>
                 {categories.map((category) => (
@@ -547,30 +575,34 @@ export default function ProductsPage() {
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="تعداد معاملات بکتست"
-              name="backtest_trades_count"
-              type="number"
-              min="0"
-              value={formData.backtest_trades_count}
-              onChange={handleInputChange}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="backtest_trades_count">تعداد معاملات بکتست</Label>
+              <Input
+                id="backtest_trades_count"
+                name="backtest_trades_count"
+                type="number"
+                min="0"
+                value={formData.backtest_trades_count}
+                onChange={handleInputChange}
+              />
+            </div>
 
-            <Input
-              label="ترتیب نمایش"
-              name="sort_order"
-              type="number"
+            <div className="space-y-2">
+              <Label htmlFor="sort_order">ترتیب نمایش</Label>
+              <Input
+                id="sort_order"
+                name="sort_order"
+                type="number"
               min="0"
               value={formData.sort_order}
               onChange={handleInputChange}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              تصویر شاخص
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="thumbnail">تصویر شاخص</Label>
             <input
+              id="thumbnail"
               type="file"
               accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={(e) => {
@@ -584,26 +616,25 @@ export default function ProductsPage() {
                   reader.readAsDataURL(file);
                 }
               }}
-              className="block w-full text-sm text-gray-500 dark:text-gray-400
+              className="block w-full text-sm text-muted-foreground
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-lg file:border-0
                 file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100
-                dark:file:bg-blue-900 dark:file:text-blue-300
-                dark:hover:file:bg-blue-800
+                file:bg-primary/10 file:text-primary
+                hover:file:bg-primary/20
                 cursor-pointer"
             />
             {thumbnailPreview && (
               <div className="mt-4">
+                <p className="text-sm text-muted-foreground mb-2">پیش‌نمایش:</p>
                 <img
                   src={thumbnailPreview}
                   alt="Thumbnail preview"
-                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                  className="w-full h-48 object-cover rounded-lg border"
                 />
                 <Button
                   type="button"
-                  variant="danger"
+                  variant="destructive"
                   size="sm"
                   onClick={() => {
                     setThumbnailFile(null);
@@ -621,11 +652,11 @@ export default function ProductsPage() {
             )}
             {!thumbnailPreview && editingProductId && formData.thumbnail && (
               <div className="mt-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">تصویر فعلی:</p>
+                <p className="text-sm text-muted-foreground mb-2">تصویر فعلی:</p>
                 <img
                   src={`${API_URL}/product/${editingProductId}/thumbnail`}
                   alt="Current thumbnail"
-                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                  className="w-full h-48 object-cover rounded-lg border"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
@@ -641,66 +672,62 @@ export default function ProductsPage() {
                 name="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
-                className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="mr-2 rounded border-input text-primary focus:ring-ring"
               />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">محصول فعال است</span>
+              <span className="text-sm font-medium">محصول فعال است</span>
             </label>
           </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                توضیحات Markdown
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="markdown_description">توضیحات Markdown</Label>
               <textarea
+                id="markdown_description"
                 name="markdown_description"
                 value={formData.markdown_description}
                 onChange={handleInputChange}
                 rows={5}
                 placeholder="# عنوان\n\nتوضیحات کامل..."
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                نتایج بکتست (JSON)
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="backtest_results">نتایج بکتست (JSON)</Label>
               <textarea
+                id="backtest_results"
                 name="backtest_results"
                 value={formData.backtest_results}
                 onChange={handleInputChange}
                 rows={4}
                 placeholder='{"profit": 1500, "drawdown": 200, "win_rate": 85.5}'
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
               />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">فرمت JSON معتبر وارد کنید</p>
+              <p className="text-xs text-muted-foreground">فرمت JSON معتبر وارد کنید</p>
             </div>
 
           {courses.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                دوره‌های مرتبط
-              </label>
-              <div className="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-800">
+            <div className="space-y-2">
+              <Label>دوره‌های مرتبط</Label>
+              <div className="max-h-40 overflow-y-auto border rounded-lg p-2 bg-muted/50">
                 {courses.map((course) => (
                   <label
                     key={course.id}
-                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
+                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-muted rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={formData.courseIds.includes(course.id)}
                       onChange={() => handleCourseSelect(course.id)}
-                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800"
+                      className="rounded border-input text-primary focus:ring-ring"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{course.title}</span>
+                    <span className="text-sm">{course.title}</span>
                   </label>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -732,12 +759,13 @@ export default function ProductsPage() {
             >
               انصراف
             </Button>
-            <Button type="submit" variant="primary" isLoading={isSubmitting}>
-              {editingProductId ? 'ذخیره تغییرات' : 'ایجاد محصول'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'در حال ذخیره...' : editingProductId ? 'ذخیره تغییرات' : 'ایجاد محصول'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -4,10 +4,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminApiClient, Course, File as FileType, Category } from '@/lib/api';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { API_URL } from '@/lib/constants';
 
 export default function CoursesPage() {
@@ -247,7 +256,8 @@ export default function CoursesPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
-          <p className="text-gray-600">در حال بارگذاری...</p>
+          <Skeleton className="h-6 w-48 mx-auto mb-4" />
+          <Skeleton className="h-4 w-32 mx-auto" />
         </div>
       </div>
     );
@@ -260,34 +270,37 @@ export default function CoursesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">مدیریت دوره‌ها</h1>
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+        <h1 className="text-3xl font-bold">مدیریت دوره‌ها</h1>
+        <Button onClick={() => setIsModalOpen(true)}>
           افزودن دوره جدید
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map((course) => (
-          <Card key={course.id} className="p-6">
-            {course.thumbnail && (
-              <div className="mb-4 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
-                <img
-                  src={`${API_URL}/course/${course.id}/thumbnail`}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-            <h3 className="text-xl font-semibold mb-2">{course.title}</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{course.description}</p>
-            {course.duration_minutes && (
-              <p className="text-xs text-gray-500 mb-4">
-                مدت زمان: {course.duration_minutes} دقیقه
-              </p>
-            )}
+          <Card key={course.id}>
+            <CardHeader>
+              {course.thumbnail && (
+                <div className="mb-4 h-48 bg-muted rounded-lg overflow-hidden">
+                  <img
+                    src={`${API_URL}/course/${course.id}/thumbnail`}
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <CardTitle className="text-xl mb-2">{course.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-sm mb-4">{course.description}</p>
+              {course.duration_minutes && (
+                <p className="text-xs text-muted-foreground mb-4">
+                  مدت زمان: {course.duration_minutes} دقیقه
+                </p>
+              )}
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -297,105 +310,109 @@ export default function CoursesPage() {
                 ویرایش
               </Button>
               <Button
-                variant="danger"
+                variant="destructive"
                 size="sm"
                 onClick={() => handleDelete(course.id)}
               >
                 حذف
               </Button>
-            </div>
+              </div>
+            </CardContent>
           </Card>
         ))}
       </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingCourseId(null);
-          setFormData({
-        title: '',
-        description: '',
-        markdown_description: '',
-        markdown_content: '',
-        keywords: [],
-        thumbnail: '',
-        is_active: true,
-        sort_order: '0',
-        duration_minutes: '0',
-        categoryId: '',
-        fileIds: [],
-      });
-      setThumbnailFile(null);
-      setThumbnailPreview(null);
-      setKeywordInput('');
-      setErrors({});
-        }}
-        title={editingCourseId ? 'ویرایش دوره' : 'افزودن دوره جدید'}
-        size="lg"
-      >
+      <Dialog open={isModalOpen} onOpenChange={(open) => {
+          if (!open) {
+            setIsModalOpen(false);
+            setEditingCourseId(null);
+            setFormData({
+              title: '',
+              description: '',
+              markdown_description: '',
+              markdown_content: '',
+              keywords: [],
+              thumbnail: '',
+              is_active: true,
+              sort_order: '0',
+              duration_minutes: '0',
+              categoryId: '',
+              fileIds: [],
+            });
+            setThumbnailFile(null);
+            setThumbnailPreview(null);
+            setKeywordInput('');
+            setErrors({});
+          }
+        }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingCourseId ? 'ویرایش دوره' : 'افزودن دوره جدید'}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="عنوان دوره *"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            error={errors.title}
-            required
-          />
+          <div className="space-y-2">
+            <Label htmlFor="title">عنوان دوره *</Label>
+            <Input
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              required
+            />
+            {errors.title && (
+              <p className="text-sm text-destructive">{errors.title}</p>
+            )}
+          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              توضیحات
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="description">توضیحات</Label>
             <textarea
+              id="description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              توضیحات Markdown
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="markdown_description">توضیحات Markdown</Label>
             <textarea
+              id="markdown_description"
               name="markdown_description"
               value={formData.markdown_description}
               onChange={handleInputChange}
               rows={5}
               placeholder="# توضیحات دوره\n\nتوضیحات کامل به صورت Markdown..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              محتوای Markdown
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="markdown_content">محتوای Markdown</Label>
             <textarea
+              id="markdown_content"
               name="markdown_content"
               value={formData.markdown_content}
               onChange={handleInputChange}
               rows={5}
               placeholder="# عنوان دوره\n\nمحتوای کامل..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              کلمات کلیدی
-            </label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                placeholder="کلمه کلیدی را وارد کنید و Enter بزنید"
-                value={keywordInput}
-                onChange={(e) => setKeywordInput(e.target.value)}
-                onKeyPress={handleKeywordInputKeyPress}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="keywordInput">کلمات کلیدی</Label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  id="keywordInput"
+                  placeholder="کلمه کلیدی را وارد کنید و Enter بزنید"
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  onKeyPress={handleKeywordInputKeyPress}
+                />
               <Button type="button" variant="outline" onClick={handleAddKeyword}>
                 افزودن
               </Button>
@@ -403,49 +420,51 @@ export default function CoursesPage() {
             {formData.keywords.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.keywords.map((keyword, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm rounded-full"
-                  >
+                  <Badge key={idx} variant="secondary" className="gap-1">
                     {keyword}
                     <button
                       type="button"
                       onClick={() => handleRemoveKeyword(keyword)}
-                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-bold"
+                      className="hover:text-destructive font-bold"
                     >
                       ×
                     </button>
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="مدت زمان (دقیقه)"
-              name="duration_minutes"
-              type="number"
-              min="0"
-              value={formData.duration_minutes}
-              onChange={handleInputChange}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="duration_minutes">مدت زمان (دقیقه)</Label>
+              <Input
+                id="duration_minutes"
+                name="duration_minutes"
+                type="number"
+                min="0"
+                value={formData.duration_minutes}
+                onChange={handleInputChange}
+              />
+            </div>
 
-            <Input
-              label="ترتیب نمایش"
-              name="sort_order"
-              type="number"
-              min="0"
-              value={formData.sort_order}
-              onChange={handleInputChange}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="sort_order">ترتیب نمایش</Label>
+              <Input
+                id="sort_order"
+                name="sort_order"
+                type="number"
+                min="0"
+                value={formData.sort_order}
+                onChange={handleInputChange}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              تصویر شاخص
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="thumbnail">تصویر شاخص</Label>
             <input
+              id="thumbnail"
               type="file"
               accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={(e) => {
@@ -459,26 +478,25 @@ export default function CoursesPage() {
                   reader.readAsDataURL(file);
                 }
               }}
-              className="block w-full text-sm text-gray-500 dark:text-gray-400
+              className="block w-full text-sm text-muted-foreground
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-lg file:border-0
                 file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100
-                dark:file:bg-blue-900 dark:file:text-blue-300
-                dark:hover:file:bg-blue-800
+                file:bg-primary/10 file:text-primary
+                hover:file:bg-primary/20
                 cursor-pointer"
             />
             {thumbnailPreview && (
               <div className="mt-4">
+                <p className="text-sm text-muted-foreground mb-2">پیش‌نمایش:</p>
                 <img
                   src={thumbnailPreview}
                   alt="Thumbnail preview"
-                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                  className="w-full h-48 object-cover rounded-lg border"
                 />
                 <Button
                   type="button"
-                  variant="danger"
+                  variant="destructive"
                   size="sm"
                   onClick={() => {
                     setThumbnailFile(null);
@@ -496,11 +514,11 @@ export default function CoursesPage() {
             )}
             {!thumbnailPreview && editingCourseId && formData.thumbnail && (
               <div className="mt-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">تصویر فعلی:</p>
+                <p className="text-sm text-muted-foreground mb-2">تصویر فعلی:</p>
                 <img
                   src={`${API_URL}/course/${editingCourseId}/thumbnail`}
                   alt="Current thumbnail"
-                  className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
+                  className="w-full h-48 object-cover rounded-lg border"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
@@ -510,15 +528,14 @@ export default function CoursesPage() {
           </div>
 
           {categories.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                دسته‌بندی دوره
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="categoryId">دسته‌بندی دوره</Label>
               <select
+                id="categoryId"
                 name="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="">بدون دسته‌بندی</option>
                 {categories.map((category) => (
@@ -537,30 +554,28 @@ export default function CoursesPage() {
                 name="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
-                className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="mr-2 rounded border-input text-primary focus:ring-ring"
               />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">دوره فعال است</span>
+              <span className="text-sm font-medium">دوره فعال است</span>
             </label>
           </div>
 
           {files.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                فایل‌های مرتبط
-              </label>
-              <div className="max-h-40 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-800">
+            <div className="space-y-2">
+              <Label>فایل‌های مرتبط</Label>
+              <div className="max-h-40 overflow-y-auto border rounded-lg p-2 bg-muted/50">
                 {files.map((file) => (
                   <label
                     key={file.id}
-                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
+                    className="flex items-center space-x-2 space-x-reverse p-2 hover:bg-muted rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={formData.fileIds.includes(file.id)}
                       onChange={() => handleFileSelect(file.id)}
-                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800"
+                      className="rounded border-input text-primary focus:ring-ring"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="text-sm">
                       {file.name} ({file.type})
                     </span>
                   </label>
@@ -569,7 +584,7 @@ export default function CoursesPage() {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -594,12 +609,13 @@ export default function CoursesPage() {
             >
               انصراف
             </Button>
-            <Button type="submit" variant="primary" isLoading={isSubmitting}>
-              {editingCourseId ? 'ذخیره تغییرات' : 'ایجاد دوره'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'در حال ذخیره...' : editingCourseId ? 'ذخیره تغییرات' : 'ایجاد دوره'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

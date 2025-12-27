@@ -2,44 +2,44 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from './ui/Button';
+import { Button } from './ui/button';
 
 export function AdminNavbar() {
   const { user, logout, isAuthenticated } = useAuth();
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-md dark:shadow-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+    <nav className="border-b shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
+            <Link href="/" className="text-xl font-bold text-primary">
               High Win Rate - پنل مدیریت
             </Link>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <Link href="/dashboard" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link href="/dashboard" className="text-foreground hover:text-primary transition-colors">
                   داشبورد
                 </Link>
-                <Link href="/admin/products" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link href="/admin/products" className="text-foreground hover:text-primary transition-colors">
                   محصولات
                 </Link>
-                <Link href="/admin/courses" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link href="/admin/courses" className="text-foreground hover:text-primary transition-colors">
                   دوره‌ها
                 </Link>
-                <Link href="/admin/categories" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link href="/admin/categories" className="text-foreground hover:text-primary transition-colors">
                   دسته‌بندی‌ها
                 </Link>
-                <Link href="/admin/users" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link href="/admin/users" className="text-foreground hover:text-primary transition-colors">
                   کاربران
                 </Link>
-                <Link href="/admin/tickets" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link href="/admin/tickets" className="text-foreground hover:text-primary transition-colors">
                   تیکت‌ها
                 </Link>
                 {user && (
-                  <span className="text-gray-700 dark:text-gray-300">
+                  <span className="text-foreground">
                     {user.first_name} {user.last_name}
                   </span>
                 )}
@@ -48,9 +48,9 @@ export function AdminNavbar() {
                 </Button>
               </>
             ) : (
-              <Link href="/login">
-                <Button variant="primary" size="sm">ورود</Button>
-              </Link>
+              <Button asChild size="sm">
+                <Link href="/login">ورود</Link>
+              </Button>
             )}
           </div>
         </div>
