@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, User, UserPurchase, Product } from '@/lib/api';
+import { User, UserPurchase, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,50 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+
+async function fetchUsersList(): Promise<User[]> {
+  const response = await fetch('/api/admin/users', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load users');
+  }
+  return response.json();
+}
+
+async function fetchUserDetails(userId: string): Promise<User> {
+  const response = await fetch(`/api/admin/users/${userId}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load user');
+  }
+  return response.json();
+}
+
+async function fetchUserPurchases(userId: string): Promise<UserPurchase[]> {
+  const response = await fetch(`/api/admin/users/${userId}/purchases`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load user purchases');
+  }
+  return response.json();
+}
+
+async function fetchProductsList(): Promise<Product[]> {
+  const response = await fetch('/api/admin/products', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load products');
+  }
+  return response.json();
+}
 
 export default function UsersPage() {
   const router = useRouter();
@@ -50,6 +94,11 @@ export default function UsersPage() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [addingProduct, setAddingProduct] = useState(false);
 
+  const loadUsers = async () => {
+    const data = await fetchUsersList();
+    setUsers(data);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -63,8 +112,7 @@ export default function UsersPage() {
 
     async function fetchUsers() {
       try {
-        const data = await adminApiClient.getUsers();
-        setUsers(data);
+        await loadUsers();
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
@@ -79,7 +127,7 @@ export default function UsersPage() {
 
   const handleEdit = async (userId: string) => {
     try {
-      const userData = await adminApiClient.getUser(userId);
+      const userData = await fetchUserDetails(userId);
       setEditingUser(userData);
       setFormData({
         first_name: userData.first_name || '',
@@ -124,7 +172,6 @@ export default function UsersPage() {
         role: formData.role,
       };
 
-      // فقط اگر password وارد شده باشد، آن را اضافه می‌کنیم
       if (formData.password && formData.password.trim() !== '') {
         if (formData.password.length < 8) {
           setErrors({ password: 'رمز عبور باید حداقل 8 کاراکتر باشد' });
@@ -134,7 +181,18 @@ export default function UsersPage() {
         updateData.password = formData.password;
       }
 
-      await adminApiClient.updateUser(editingUser.id, updateData);
+      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در به‌روزرسانی کاربر');
+        throw new Error(message);
+      }
+
       alert('کاربر با موفقیت به‌روزرسانی شد');
       setIsEditModalOpen(false);
       setEditingUser(null);
@@ -146,9 +204,7 @@ export default function UsersPage() {
         password: '',
       });
 
-      // Refresh users list
-      const updatedUsers = await adminApiClient.getUsers();
-      setUsers(updatedUsers);
+      await loadUsers();
     } catch (error: any) {
       console.error('Error updating user:', error);
       alert(error.message || 'خطا در به‌روزرسانی کاربر');
@@ -161,14 +217,20 @@ export default function UsersPage() {
     if (!editingUser) return;
 
     try {
-      await adminApiClient.deleteUser(editingUser.id);
+      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در حذف کاربر');
+        throw new Error(message);
+      }
+
       alert('کاربر با موفقیت حذف شد');
       setIsDeleteModalOpen(false);
       setEditingUser(null);
-
-      // Refresh users list
-      const updatedUsers = await adminApiClient.getUsers();
-      setUsers(updatedUsers);
+      await loadUsers();
     } catch (error: any) {
       console.error('Error deleting user:', error);
       alert(error.message || 'خطا در حذف کاربر');
@@ -177,16 +239,15 @@ export default function UsersPage() {
 
   const handleManageProducts = async (userId: string) => {
     try {
-      setEditingUser(users.find(u => u.id === userId) || null);
+      setEditingUser(users.find((u) => u.id === userId) || null);
       setLoadingPurchases(true);
       setIsProductsModalOpen(true);
-      
-      // Fetch user purchases and all products in parallel
+
       const [purchases, products] = await Promise.all([
-        adminApiClient.getUserPurchases(userId),
-        adminApiClient.getProducts(),
+        fetchUserPurchases(userId),
+        fetchProductsList(),
       ]);
-      
+
       setUserPurchases(purchases);
       setAllProducts(products);
       setSelectedProductId('');
@@ -216,11 +277,21 @@ export default function UsersPage() {
 
     setAddingProduct(true);
     try {
-      await adminApiClient.addProductToUser(editingUser.id, selectedProductId);
+      const response = await fetch(`/api/admin/users/${editingUser.id}/purchases`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: selectedProductId }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در اضافه کردن محصول');
+        throw new Error(message);
+      }
+
       alert('محصول با موفقیت به کاربر اضافه شد');
-      
-      // Refresh purchases list
-      const purchases = await adminApiClient.getUserPurchases(editingUser.id);
+
+      const purchases = await fetchUserPurchases(editingUser.id);
       setUserPurchases(purchases);
       setSelectedProductId('');
     } catch (error: any) {
@@ -239,11 +310,19 @@ export default function UsersPage() {
     }
 
     try {
-      await adminApiClient.removeProductFromUser(editingUser.id, productId);
+      const response = await fetch(`/api/admin/users/${editingUser.id}/purchases/${productId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در حذف محصول');
+        throw new Error(message);
+      }
+
       alert('محصول با موفقیت از کاربر حذف شد');
-      
-      // Refresh purchases list
-      const purchases = await adminApiClient.getUserPurchases(editingUser.id);
+
+      const purchases = await fetchUserPurchases(editingUser.id);
       setUserPurchases(purchases);
     } catch (error: any) {
       console.error('Error removing product:', error);

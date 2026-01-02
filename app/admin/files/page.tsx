@@ -3,14 +3,57 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, File as FileType, Course, Product } from '@/lib/api';
+import { File as FileType, Course, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { API_URL } from '@/lib/constants';
+
+async function fetchFilesList(): Promise<FileType[]> {
+  const response = await fetch('/api/admin/files', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load files');
+  }
+  return response.json();
+}
+
+async function fetchFileDetails(id: string): Promise<FileType> {
+  const response = await fetch(`/api/admin/files/${id}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load file details');
+  }
+  return response.json();
+}
+
+async function fetchAdminCoursesForFiles(): Promise<Course[]> {
+  const response = await fetch('/api/admin/courses', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load courses');
+  }
+  return response.json();
+}
+
+async function fetchAdminProducts(): Promise<Product[]> {
+  const response = await fetch('/api/admin/products', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load products');
+  }
+  return response.json();
+}
 
 export default function FilesPage() {
   const router = useRouter();
@@ -45,6 +88,11 @@ export default function FilesPage() {
   const [editSelectedProductIds, setEditSelectedProductIds] = useState<string[]>([]);
   const [editSelectedCourseIds, setEditSelectedCourseIds] = useState<string[]>([]);
 
+  const loadFiles = async () => {
+    const list = await fetchFilesList();
+    setFiles(list);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -59,9 +107,9 @@ export default function FilesPage() {
     async function fetchData() {
       try {
         const [filesData, coursesData, productsData] = await Promise.all([
-          adminApiClient.getFiles(),
-          adminApiClient.getCourses(),
-          adminApiClient.getProducts(),
+          fetchFilesList(),
+          fetchAdminCoursesForFiles(),
+          fetchAdminProducts(),
         ]);
         setFiles(filesData);
         setCourses(coursesData);
@@ -112,17 +160,27 @@ export default function FilesPage() {
     setUploadSuccess(false);
 
     try {
-      const uploadedFile = await adminApiClient.uploadFile(fileToUpload, {
-        name: fileName,
-        type: fileType,
-        isFree,
-        productIds: selectedProductIds.length > 0 ? selectedProductIds : undefined,
-        courseIds: selectedCourseIds.length > 0 ? selectedCourseIds : undefined,
+      const formData = new FormData();
+      formData.append('file', fileToUpload);
+      formData.append('name', fileName);
+      formData.append('type', fileType);
+      formData.append('isFree', String(isFree));
+      selectedProductIds.forEach((id) => formData.append('productIds', id));
+      selectedCourseIds.forEach((id) => formData.append('courseIds', id));
+
+      const response = await fetch('/api/admin/files/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
       });
 
-      // Add to files list
-      setFiles([uploadedFile, ...files]);
-      
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در آپلود فایل');
+        throw new Error(message);
+      }
+
+      await loadFiles();
+
       // Reset form
       setFileToUpload(null);
       setFileName('');
@@ -132,7 +190,7 @@ export default function FilesPage() {
       setSelectedCourseIds([]);
       setShowUploadModal(false);
       setUploadSuccess(true);
-      
+
       // Hide success message after 3 seconds
       setTimeout(() => setUploadSuccess(false), 3000);
     } catch (error: any) {
@@ -148,8 +206,16 @@ export default function FilesPage() {
     }
 
     try {
-      await adminApiClient.deleteFile(id);
-      setFiles(files.filter(f => f.id !== id));
+      const response = await fetch(`/api/admin/files/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در حذف فایل');
+        throw new Error(message);
+      }
+      await loadFiles();
     } catch (error) {
       console.error('Error deleting file:', error);
       alert('خطا در حذف فایل. لطفاً دوباره تلاش کنید.');
@@ -164,7 +230,7 @@ export default function FilesPage() {
     
     // Fetch full file data to get courses and products
     try {
-      const fullFile = await adminApiClient.getFile(file.id);
+      const fullFile = await fetchFileDetails(file.id);
       // Extract product IDs from products array
       if (fullFile.products && Array.isArray(fullFile.products)) {
         setEditSelectedProductIds(fullFile.products.map((p: Product) => p.id));
@@ -198,22 +264,33 @@ export default function FilesPage() {
     setEditSuccess(false);
 
     try {
-      const updatedFile = await adminApiClient.updateFile(editingFile.id, {
-        name: editFileName,
-        type: editFileType,
-        isFree: editIsFree,
-        productIds: editSelectedProductIds.length > 0 ? editSelectedProductIds : undefined,
-        courseIds: editSelectedCourseIds.length > 0 ? editSelectedCourseIds : undefined,
+      const response = await fetch(`/api/admin/files/${editingFile.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: editFileName,
+          type: editFileType,
+          isFree: editIsFree,
+          productIds: editSelectedProductIds.length > 0 ? editSelectedProductIds : undefined,
+          courseIds: editSelectedCourseIds.length > 0 ? editSelectedCourseIds : undefined,
+        }),
       });
 
-      // Update file in list
-      setFiles(files.map(f => f.id === editingFile.id ? updatedFile : f));
-      
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در به‌روزرسانی فایل');
+        throw new Error(message);
+      }
+
+      await loadFiles();
+
       // Close modal
       setShowEditModal(false);
       setEditingFile(null);
       setEditSuccess(true);
-      
+
       // Hide success message after 3 seconds
       setTimeout(() => setEditSuccess(false), 3000);
     } catch (error: any) {
@@ -225,19 +302,8 @@ export default function FilesPage() {
 
   const handleDownload = async (file: FileType) => {
     try {
-      const apiUrl = API_URL;
-      const token = adminApiClient.getToken();
-      
-      if (!token) {
-        alert('لطفاً دوباره وارد شوید');
-        return;
-      }
-
-      // Fetch file with authorization header
-      const response = await fetch(`${apiUrl}/file/serve/${file.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await fetch(`/api/files/${file.id}`, {
+        credentials: 'include',
       });
 
       if (!response.ok) {

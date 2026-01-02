@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Product, Course, Category } from '@/lib/api';
+import { Product, Course, Category } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,51 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { API_URL } from '@/lib/constants';
+import { buildThumbnailUrl } from '@/lib/data/products';
+
+async function fetchProductsList(): Promise<Product[]> {
+  const response = await fetch('/api/admin/products', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load products');
+  }
+  return response.json();
+}
+
+async function fetchProductDetails(productId: string): Promise<Product> {
+  const response = await fetch(`/api/admin/products/${productId}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load product details');
+  }
+  return response.json();
+}
+
+async function fetchAdminCourses(): Promise<Course[]> {
+  const response = await fetch('/api/admin/courses', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load courses');
+  }
+  return response.json();
+}
+
+async function fetchAdminCategories(): Promise<Category[]> {
+  const response = await fetch('/api/admin/categories', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load categories');
+  }
+  return response.json();
+}
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -53,6 +97,11 @@ export default function ProductsPage() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
+  const loadProducts = async () => {
+    const productsData = await fetchProductsList();
+    setProducts(productsData);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -67,9 +116,9 @@ export default function ProductsPage() {
     async function fetchData() {
       try {
         const [productsData, coursesData, categoriesData] = await Promise.all([
-          adminApiClient.getProducts(),
-          adminApiClient.getCourses(),
-          adminApiClient.getCategories(),
+          fetchProductsList(),
+          fetchAdminCourses(),
+          fetchAdminCategories(),
         ]);
         setProducts(productsData);
         setCourses(coursesData);
@@ -148,7 +197,7 @@ export default function ProductsPage() {
 
   const handleEdit = async (productId: string) => {
     try {
-      const product = await adminApiClient.getProduct(productId);
+      const product = await fetchProductDetails(productId);
       
       // Format discount expiration date if exists
       let discountExpiresAt = '';
@@ -178,7 +227,7 @@ export default function ProductsPage() {
       });
       // Set thumbnail preview if exists
       if (product.thumbnail) {
-        setThumbnailPreview(`${API_URL}/product/${productId}/thumbnail`);
+        setThumbnailPreview(buildThumbnailUrl(product.thumbnail));
       } else {
         setThumbnailPreview(null);
       }
@@ -189,6 +238,28 @@ export default function ProductsPage() {
       console.error('Error fetching product:', error);
       alert(error.message || 'خطا در بارگذاری محصول');
     }
+  };
+
+  const handleThumbnailUpload = async (productId: string) => {
+    if (!thumbnailFile) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append('thumbnail', thumbnailFile);
+
+    const response = await fetch(`/api/admin/products/${productId}/thumbnail`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const message = await response.text().catch(() => 'خطا در بارگذاری تصویر');
+      throw new Error(message);
+    }
+
+    const data = await response.json();
+    setThumbnailPreview(data.thumbnailUrl ?? buildThumbnailUrl(data.thumbnail));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,35 +300,36 @@ export default function ProductsPage() {
               }
             })()
           : undefined,
-        thumbnail: formData.thumbnail || undefined,
         is_active: formData.is_active,
         sort_order: parseInt(formData.sort_order) || 0,
       };
 
-      let createdOrUpdatedProduct: Product;
-      if (editingProductId) {
-        // Update existing product
-        createdOrUpdatedProduct = await adminApiClient.updateProduct(editingProductId, productData);
-        
-        // Upload thumbnail if selected
-        if (thumbnailFile) {
-          await adminApiClient.uploadProductThumbnail(editingProductId, thumbnailFile);
-        }
-      } else {
-        // Create new product
-        createdOrUpdatedProduct = await adminApiClient.createProduct(productData);
-        
-        // Upload thumbnail if selected
-        if (thumbnailFile && createdOrUpdatedProduct.id) {
-          await adminApiClient.uploadProductThumbnail(createdOrUpdatedProduct.id, thumbnailFile);
-        }
+      const endpoint = editingProductId
+        ? `/api/admin/products/${editingProductId}`
+        : '/api/admin/products';
+      const method = editingProductId ? 'PATCH' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(productData),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در ذخیره محصول');
+        throw new Error(message);
       }
-      
-      // Refresh products list
-      const updatedProducts = await adminApiClient.getProducts();
-      setProducts(updatedProducts);
-      
-      // Reset form and close modal
+
+      const result: Product = await response.json();
+      if (thumbnailFile && result.id) {
+        await handleThumbnailUpload(result.id);
+      }
+
+      await loadProducts();
+
       setFormData({
         title: '',
         description: '',
@@ -297,9 +369,15 @@ export default function ProductsPage() {
     }
 
     try {
-      await adminApiClient.deleteProduct(id);
-      const updatedProducts = await adminApiClient.getProducts();
-      setProducts(updatedProducts);
+      const response = await fetch(`/api/admin/products/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در حذف محصول');
+        throw new Error(message);
+      }
+      await loadProducts();
     } catch (error: any) {
       console.error('Error deleting product:', error);
       alert(error.message || 'خطا در حذف محصول');
@@ -337,7 +415,7 @@ export default function ProductsPage() {
               {product.thumbnail && (
                 <div className="mb-4 h-48 bg-muted rounded-lg overflow-hidden">
                   <img
-                    src={`${API_URL}/product/${product.id}/thumbnail`}
+                    src={buildThumbnailUrl(product.thumbnail) ?? undefined}
                     alt={product.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {

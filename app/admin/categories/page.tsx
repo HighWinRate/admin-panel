@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Category } from '@/lib/api';
+import { Category } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,28 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+
+async function fetchCategoriesList(): Promise<Category[]> {
+  const response = await fetch('/api/admin/categories', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load categories');
+  }
+  return response.json();
+}
+
+async function fetchCategoryDetails(categoryId: string): Promise<Category> {
+  const response = await fetch(`/api/admin/categories/${categoryId}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load category');
+  }
+  return response.json();
+}
 
 export default function CategoriesPage() {
   const router = useRouter();
@@ -37,6 +59,11 @@ export default function CategoriesPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const loadCategories = async () => {
+    const data = await fetchCategoriesList();
+    setCategories(data);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -50,8 +77,7 @@ export default function CategoriesPage() {
 
     async function fetchCategories() {
       try {
-        const categoriesData = await adminApiClient.getCategories();
-        setCategories(categoriesData);
+        await loadCategories();
       } catch (error) {
         console.error('Error fetching categories:', error);
       } finally {
@@ -101,7 +127,7 @@ export default function CategoriesPage() {
 
   const handleEdit = async (categoryId: string) => {
     try {
-      const categoryToEdit = await adminApiClient.getCategory(categoryId);
+      const categoryToEdit = await fetchCategoryDetails(categoryId);
 
       setFormData({
         name: categoryToEdit.name || '',
@@ -139,17 +165,24 @@ export default function CategoriesPage() {
         parent_id: formData.parent_id || undefined,
       };
 
-      if (editingCategoryId) {
-        // Update existing category
-        await adminApiClient.updateCategory(editingCategoryId, categoryData);
-      } else {
-        // Create new category
-        await adminApiClient.createCategory(categoryData);
+      const endpoint = editingCategoryId
+        ? `/api/admin/categories/${editingCategoryId}`
+        : '/api/admin/categories';
+      const method = editingCategoryId ? 'PATCH' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(categoryData),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در ذخیره دسته‌بندی');
+        throw new Error(message);
       }
-      
-      // Refresh categories list
-      const updatedCategories = await adminApiClient.getCategories();
-      setCategories(updatedCategories);
+
+      await loadCategories();
       
       // Reset form and close modal
       resetForm();
@@ -167,9 +200,17 @@ export default function CategoriesPage() {
     }
 
     try {
-      await adminApiClient.deleteCategory(id);
-      const updatedCategories = await adminApiClient.getCategories();
-      setCategories(updatedCategories);
+      const response = await fetch(`/api/admin/categories/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در حذف دسته‌بندی');
+        throw new Error(message);
+      }
+
+      await loadCategories();
     } catch (error: any) {
       console.error('Error deleting category:', error);
       alert(error.message || 'خطا در حذف دسته‌بندی');

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Ticket, TicketStatus, TicketPriority, TicketType, User } from '@/lib/api';
+import { Ticket, TicketStatus, TicketPriority, TicketType, User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,93 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+
+async function fetchTicketsList(params: {
+  page: number;
+  limit: number;
+  status?: string;
+  priority?: string;
+  type?: string;
+}) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    limit: String(params.limit),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.priority) query.set('priority', params.priority);
+  if (params.type) query.set('type', params.type);
+
+  const response = await fetch(`/api/admin/tickets?${query.toString()}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load tickets');
+  }
+  return response.json();
+}
+
+async function fetchTicketDetails(ticketId: string) {
+  const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load ticket');
+  }
+  return response.json();
+}
+
+async function fetchTicketMessages(ticketId: string) {
+  const response = await fetch(`/api/admin/tickets/${ticketId}/messages`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load messages');
+  }
+  return response.json();
+}
+
+async function sendTicketMessage(ticketId: string, payload: Record<string, unknown>) {
+  const response = await fetch(`/api/admin/tickets/${ticketId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const message = await response.text().catch(() => 'خطا در ارسال پیام');
+    throw new Error(message);
+  }
+  return response.json();
+}
+
+async function updateTicket(ticketId: string, payload: Record<string, unknown>) {
+  const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const message = await response.text().catch(() => 'خطا در به‌روزرسانی تیکت');
+    throw new Error(message);
+  }
+  return response.json();
+}
+
+async function fetchSupportUsers(): Promise<User[]> {
+  const response = await fetch('/api/admin/users', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load users');
+  }
+  const data: User[] = await response.json();
+  return data.filter((u) => u.role === 'admin' || u.role === 'support');
+}
 
 export default function TicketsPage() {
   const router = useRouter();
@@ -35,6 +122,23 @@ export default function TicketsPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
 
+  const loadTickets = async () => {
+    const response = await fetchTicketsList({
+      page: currentPage,
+      limit: 20,
+      status: filterStatus !== 'all' ? filterStatus : undefined,
+      priority: filterPriority !== 'all' ? filterPriority : undefined,
+      type: filterType !== 'all' ? filterType : undefined,
+    });
+    setTickets(response.tickets);
+    setTotalPages(response.totalPages);
+  };
+
+  const loadSupportUsers = async () => {
+    const data = await fetchSupportUsers();
+    setUsers(data);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -47,50 +151,32 @@ export default function TicketsPage() {
     }
 
     if (isAuthenticated) {
-      fetchTickets();
-      fetchUsers();
-    }
-  }, [isAuthenticated, loading, router, filterStatus, filterPriority, filterType, currentPage]);
-
-  async function fetchTickets() {
-    try {
       setLoadingTickets(true);
-      const params: any = {
-        page: currentPage,
-        limit: 20,
-      };
-      if (filterStatus !== 'all') params.status = filterStatus;
-      if (filterPriority !== 'all') params.priority = filterPriority;
-      if (filterType !== 'all') params.type = filterType;
-      
-      const response = await adminApiClient.getTickets(params);
-      setTickets(response.tickets);
-      setTotalPages(response.totalPages);
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-    } finally {
-      setLoadingTickets(false);
+      loadTickets()
+        .catch((error) => console.error('Error fetching tickets:', error))
+        .finally(() => setLoadingTickets(false));
+      loadSupportUsers().catch((error) => console.error('Error fetching users:', error));
     }
-  }
-
-  async function fetchUsers() {
-    try {
-      const data = await adminApiClient.getUsers();
-      setUsers(data.filter(u => u.role === 'admin' || u.role === 'support'));
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  }
+  }, [
+    isAuthenticated,
+    loading,
+    router,
+    filterStatus,
+    filterPriority,
+    filterType,
+    currentPage,
+  ]);
 
   async function handleUpdateStatus(ticketId: string, newStatus: TicketStatus) {
     setUpdating(true);
     try {
-      await adminApiClient.updateTicket(ticketId, { status: newStatus });
-      await fetchTickets();
+      await updateTicket(ticketId, { status: newStatus });
+      await loadTickets();
       if (selectedTicket?.id === ticketId) {
-        const updated = await adminApiClient.getTicket(ticketId);
+        const updated = await fetchTicketDetails(ticketId);
         setSelectedTicket(updated);
-        await fetchMessages(ticketId);
+        const msgs = await fetchTicketMessages(ticketId);
+        setMessages(msgs);
       }
     } catch (error: any) {
       alert(error.message || 'خطا در به‌روزرسانی وضعیت');
@@ -102,12 +188,13 @@ export default function TicketsPage() {
   async function handleAssignTicket(ticketId: string, assignedToId: string) {
     setUpdating(true);
     try {
-      await adminApiClient.assignTicket(ticketId, assignedToId);
-      await fetchTickets();
+      await updateTicket(ticketId, { assigned_to: assignedToId });
+      await loadTickets();
       if (selectedTicket?.id === ticketId) {
-        const updated = await adminApiClient.getTicket(ticketId);
+        const updated = await fetchTicketDetails(ticketId);
         setSelectedTicket(updated);
-        await fetchMessages(ticketId);
+        const msgs = await fetchTicketMessages(ticketId);
+        setMessages(msgs);
       }
     } catch (error: any) {
       alert(error.message || 'خطا در اختصاص تیکت');
@@ -118,22 +205,13 @@ export default function TicketsPage() {
 
   async function handleViewDetails(ticket: Ticket) {
     try {
-      const fullTicket = await adminApiClient.getTicket(ticket.id);
+      const fullTicket = await fetchTicketDetails(ticket.id);
       setSelectedTicket(fullTicket);
       setIsDetailModalOpen(true);
-      // Fetch messages separately
-      await fetchMessages(ticket.id);
+      const msgs = await fetchTicketMessages(ticket.id);
+      setMessages(msgs);
     } catch (error) {
       console.error('Error fetching ticket details:', error);
-    }
-  }
-
-  async function fetchMessages(ticketId: string) {
-    try {
-      const data = await adminApiClient.getTicketMessages(ticketId);
-      setMessages(data);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
     }
   }
 
@@ -143,15 +221,15 @@ export default function TicketsPage() {
 
     setSendingMessage(true);
     try {
-      await adminApiClient.createTicketMessage(selectedTicket.id, {
+      await sendTicketMessage(selectedTicket.id, {
         content: newMessage.trim(),
         type: 'support',
         is_internal: false,
       });
       setNewMessage('');
-      await fetchMessages(selectedTicket.id);
-      // Refresh ticket to get updated status
-      const updated = await adminApiClient.getTicket(selectedTicket.id);
+      const msgs = await fetchTicketMessages(selectedTicket.id);
+      setMessages(msgs);
+      const updated = await fetchTicketDetails(selectedTicket.id);
       setSelectedTicket(updated);
     } catch (error: any) {
       console.error('Error sending message:', error);

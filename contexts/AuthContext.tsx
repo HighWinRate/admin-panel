@@ -1,118 +1,141 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { adminApiClient, User } from '@/lib/api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  ReactNode,
+} from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
+import { User } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+
+  const createFallbackUser = (sessionUser: SupabaseUser): User => ({
+    id: sessionUser.id,
+    email: sessionUser.email ?? '',
+    first_name: (sessionUser.user_metadata as any)?.first_name ?? '',
+    last_name: (sessionUser.user_metadata as any)?.last_name ?? '',
+    role:
+      ((sessionUser.user_metadata as any)?.role as User['role']) ?? 'user',
+  });
+
+  const fetchUserProfile = useCallback(
+    async (userId: string, sessionUser?: SupabaseUser) => {
+      try {
+        const { data } = await supabase
+          .from<User>('users')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (data) {
+          setUser(data);
+          return;
+        }
+
+        if (sessionUser) {
+          setUser(createFallbackUser(sessionUser));
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        if (sessionUser) {
+          setUser(createFallbackUser(sessionUser));
+        }
+      }
+    },
+    [supabase],
+  );
 
   useEffect(() => {
     let isMounted = true;
-    let subscription: { unsubscribe: () => void } | null = null;
-    let isInitialized = false;
 
-    // Function to fetch user profile
-    const fetchUserProfile = async (userId: string, accessToken: string) => {
+    const syncSession = async () => {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
       if (!isMounted) return;
-      
-      adminApiClient.setToken(accessToken);
-      
-      try {
-        const fullUser = await adminApiClient.getUser(userId);
-        if (isMounted) {
-          setUser(fullUser);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        // If fetch fails, use basic info from Supabase
-        if (isMounted) {
-          // We'll set user from session in onAuthStateChange if needed
-        }
+
+      if (error) {
+        console.error('Failed to load Supabase session:', error);
+        setUser(null);
+        setLoading(false);
+        return;
       }
+
+      if (session?.user) {
+        await fetchUserProfile(session.user.id, session.user);
+      } else {
+        setUser(null);
+      }
+
+      setLoading(false);
     };
 
-    // Check Supabase session once on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted || isInitialized) return;
-      isInitialized = true;
-      
-      if (session && session.user) {
-        fetchUserProfile(session.user.id, session.access_token).finally(() => {
-          if (isMounted) {
-            setLoading(false);
-          }
-        });
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth changes (only significant changes)
     const {
-      data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      
-      // Only handle significant auth events to avoid loops
-      if (event === 'SIGNED_IN') {
-        if (session && session.user) {
-          fetchUserProfile(session.user.id, session.access_token);
-        }
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        setLoading(true);
+        await fetchUserProfile(session.user.id, session.user);
+        setLoading(false);
       } else if (event === 'SIGNED_OUT') {
-        adminApiClient.setToken(null);
         setUser(null);
         setLoading(false);
       }
-      // Ignore TOKEN_REFRESHED and other events to reduce requests
     });
 
-    subscription = authSubscription;
+    void syncSession();
 
     return () => {
       isMounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase, fetchUserProfile]);
 
   const login = async (email: string, password: string) => {
-    // Use Supabase Auth for login
+    setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
+      setLoading(false);
       throw new Error(error.message);
     }
 
-    if (data.session) {
-      // Set token in API client
-      adminApiClient.setToken(data.session.access_token);
-      
-      // Fetch user profile from our API
-      const fullUser = await adminApiClient.getUser(data.user.id);
-      setUser(fullUser);
+    const sessionUser = data.user || data.session?.user;
+    if (sessionUser && data.session) {
+      await fetchUserProfile(sessionUser.id, sessionUser);
     }
+
+    setLoading(false);
   };
 
   const logout = async () => {
     await supabase.auth.signOut();
-    adminApiClient.logout();
     setUser(null);
   };
 

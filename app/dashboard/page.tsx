@@ -3,9 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Product, Course, User, Transaction } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+
+async function fetchDashboardStats() {
+  const response = await fetch('/api/admin/stats', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load dashboard stats');
+  }
+  return response.json();
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -18,6 +28,11 @@ export default function DashboardPage() {
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
+  const loadStats = async () => {
+    const data = await fetchDashboardStats();
+    setStats(data);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -29,40 +44,16 @@ export default function DashboardPage() {
       return;
     }
 
-    async function fetchStats() {
-      try {
-        const [products, courses, users, transactions] = await Promise.all([
-          adminApiClient.getProducts(),
-          adminApiClient.getCourses(),
-          adminApiClient.getUsers(),
-          adminApiClient.getTransactions().catch((err) => {
-            console.error('Error fetching transactions:', err);
-            return []; // Return empty array on error
-          }),
-        ]);
-
-        setStats({
-          products: products.length,
-          courses: courses.length,
-          users: users.length,
-          transactions: transactions.length,
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-        // Set stats to 0 on error to avoid breaking the UI
-        setStats({
-          products: 0,
-          courses: 0,
-          users: 0,
-          transactions: 0,
-        });
-      } finally {
-        setLoadingStats(false);
-      }
-    }
-
     if (isAuthenticated) {
-      fetchStats();
+      setLoadingStats(true);
+      loadStats()
+        .catch((error) => {
+          console.error('Error fetching stats:', error);
+          setStats({ products: 0, courses: 0, users: 0, transactions: 0 });
+        })
+        .finally(() => {
+          setLoadingStats(false);
+        });
     }
   }, [user, isAuthenticated, loading, router]);
 

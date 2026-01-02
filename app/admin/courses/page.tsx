@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Course, File as FileType, Category } from '@/lib/api';
+import { Course, File as FileType, Category } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,40 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { API_URL } from '@/lib/constants';
+import { buildCourseThumbnailUrl } from '@/lib/data/courses';
+
+async function fetchCoursesList(): Promise<Course[]> {
+  const response = await fetch('/api/admin/courses', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load courses');
+  }
+  return response.json();
+}
+
+async function fetchCourseDetails(courseId: string): Promise<Course> {
+  const response = await fetch(`/api/admin/courses/${courseId}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load course');
+  }
+  return response.json();
+}
+
+async function fetchAdminCategories(): Promise<Category[]> {
+  const response = await fetch('/api/admin/categories', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load categories');
+  }
+  return response.json();
+}
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -47,6 +80,11 @@ export default function CoursesPage() {
   const [thumbnailFile, setThumbnailFile] = useState<globalThis.File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
+  const loadCourses = async () => {
+    const data = await fetchCoursesList();
+    setCourses(data);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -60,12 +98,11 @@ export default function CoursesPage() {
 
     async function fetchData() {
       try {
-        const [coursesData, filesData, categoriesData] = await Promise.all([
-          adminApiClient.getCourses(),
-          adminApiClient.getFiles(),
-          adminApiClient.getCategories(),
+        const [filesData, categoriesData] = await Promise.all([
+          fetchFilesList(),
+          fetchAdminCategories(),
         ]);
-        setCourses(coursesData);
+        await loadCourses();
         setFiles(filesData);
         setCategories(categoriesData);
       } catch (error) {
@@ -134,9 +171,32 @@ export default function CoursesPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleThumbnailUpload = async (courseId: string) => {
+    if (!thumbnailFile) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('thumbnail', thumbnailFile);
+
+    const response = await fetch(`/api/admin/courses/${courseId}/thumbnail`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const message = await response.text().catch(() => 'خطا در بارگذاری تصویر');
+      throw new Error(message);
+    }
+
+    const result = await response.json();
+    setThumbnailPreview(result.thumbnailUrl || buildCourseThumbnailUrl(result.thumbnail));
+  };
+
   const handleEdit = async (courseId: string) => {
     try {
-      const course = await adminApiClient.getCourse(courseId);
+      const course = await fetchCourseDetails(courseId);
       
       setFormData({
         title: course.title || '',
@@ -153,7 +213,7 @@ export default function CoursesPage() {
       });
       // Set thumbnail preview if exists
       if (course.thumbnail) {
-        setThumbnailPreview(`${API_URL}/course/${courseId}/thumbnail`);
+        setThumbnailPreview(buildCourseThumbnailUrl(course.thumbnail));
       } else {
         setThumbnailPreview(null);
       }
@@ -178,39 +238,40 @@ export default function CoursesPage() {
       const courseData = {
         title: formData.title,
         description: formData.description || undefined,
+        markdown_description: formData.markdown_description || undefined,
         markdown_content: formData.markdown_content || undefined,
         keywords: formData.keywords.length > 0 ? formData.keywords : undefined,
-        thumbnail: formData.thumbnail || undefined,
         is_active: formData.is_active,
         sort_order: parseInt(formData.sort_order) || 0,
         duration_minutes: parseInt(formData.duration_minutes) || 0,
         categoryId: formData.categoryId || undefined,
-        fileIds: formData.fileIds.length > 0 ? formData.fileIds : undefined,
+        fileIds: formData.fileIds,
       };
 
-      let createdOrUpdatedCourse: Course;
-      if (editingCourseId) {
-        // Update existing course
-        createdOrUpdatedCourse = await adminApiClient.updateCourse(editingCourseId, courseData);
-        
-        // Upload thumbnail if selected
-        if (thumbnailFile) {
-          await adminApiClient.uploadCourseThumbnail(editingCourseId, thumbnailFile);
-        }
-      } else {
-        // Create new course
-        createdOrUpdatedCourse = await adminApiClient.createCourse(courseData);
-        
-        // Upload thumbnail if selected
-        if (thumbnailFile && createdOrUpdatedCourse.id) {
-          await adminApiClient.uploadCourseThumbnail(createdOrUpdatedCourse.id, thumbnailFile);
-        }
+      const endpoint = editingCourseId
+        ? `/api/admin/courses/${editingCourseId}`
+        : '/api/admin/courses';
+      const method = editingCourseId ? 'PATCH' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(courseData),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در ذخیره دوره');
+        throw new Error(message);
       }
-      
-      // Refresh courses list
-      const updatedCourses = await adminApiClient.getCourses();
-      setCourses(updatedCourses);
-      
+
+      const savedCourse: Course = await response.json();
+      if (thumbnailFile) {
+        await handleThumbnailUpload(savedCourse.id);
+      }
+
+      await loadCourses();
+
       // Reset form and close modal
       setFormData({
         title: '',
@@ -243,9 +304,15 @@ export default function CoursesPage() {
     }
 
     try {
-      await adminApiClient.deleteCourse(id);
-      const updatedCourses = await adminApiClient.getCourses();
-      setCourses(updatedCourses);
+      const response = await fetch(`/api/admin/courses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در حذف دوره');
+        throw new Error(message);
+      }
+      await loadCourses();
     } catch (error: any) {
       console.error('Error deleting course:', error);
       alert(error.message || 'خطا در حذف دوره');
@@ -283,7 +350,7 @@ export default function CoursesPage() {
               {course.thumbnail && (
                 <div className="mb-4 h-48 bg-muted rounded-lg overflow-hidden">
                   <img
-                    src={`${API_URL}/course/${course.id}/thumbnail`}
+                    src={buildCourseThumbnailUrl(course.thumbnail) ?? undefined}
                     alt={course.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -498,14 +565,13 @@ export default function CoursesPage() {
                   type="button"
                   variant="destructive"
                   size="sm"
-                  onClick={() => {
-                    setThumbnailFile(null);
-                    setThumbnailPreview(null);
-                    if (editingCourseId && formData.thumbnail) {
-                      // Keep existing thumbnail preview
-                      setThumbnailPreview(`${API_URL}/course/${editingCourseId}/thumbnail`);
-                    }
-                  }}
+                onClick={() => {
+                  setThumbnailFile(null);
+                  setThumbnailPreview(null);
+                  if (editingCourseId && formData.thumbnail) {
+                    setThumbnailPreview(buildCourseThumbnailUrl(formData.thumbnail));
+                  }
+                }}
                   className="mt-2"
                 >
                   حذف تصویر
@@ -515,8 +581,8 @@ export default function CoursesPage() {
             {!thumbnailPreview && editingCourseId && formData.thumbnail && (
               <div className="mt-4">
                 <p className="text-sm text-muted-foreground mb-2">تصویر فعلی:</p>
-                <img
-                  src={`${API_URL}/course/${editingCourseId}/thumbnail`}
+              <img
+                src={buildCourseThumbnailUrl(formData.thumbnail) ?? undefined}
                   alt="Current thumbnail"
                   className="w-full h-48 object-cover rounded-lg border"
                   onError={(e) => {

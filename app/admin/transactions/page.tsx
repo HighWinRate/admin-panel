@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, Transaction } from '@/lib/api';
+import { Transaction } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+async function fetchTransactionsList(): Promise<Transaction[]> {
+  const response = await fetch('/api/admin/transactions', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load transactions');
+  }
+  return response.json();
+}
+
 export default function TransactionsPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
@@ -46,6 +57,11 @@ export default function TransactionsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const loadTransactions = async () => {
+    const data = await fetchTransactionsList();
+    setTransactions(data);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -59,8 +75,7 @@ export default function TransactionsPage() {
 
     async function fetchTransactions() {
       try {
-        const data = await adminApiClient.getTransactions();
-        setTransactions(data);
+        await loadTransactions();
       } catch (error) {
         console.error('Error fetching transactions:', error);
       } finally {
@@ -163,7 +178,7 @@ export default function TransactionsPage() {
     setIsSubmitting(true);
 
     try {
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
 
       if (formData.status) updateData.status = formData.status;
       if (formData.amount) updateData.amount = Number(formData.amount);
@@ -174,11 +189,19 @@ export default function TransactionsPage() {
       if (formData.gateway) updateData.gateway = formData.gateway;
       if (formData.paid_at) updateData.paid_at = new Date(formData.paid_at).toISOString();
 
-      await adminApiClient.updateTransaction(editingTransaction.id, updateData);
+      const response = await fetch(`/api/admin/transactions/${editingTransaction.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
 
-      // Refresh transactions list
-      const updatedTransactions = await adminApiClient.getTransactions();
-      setTransactions(updatedTransactions);
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در به‌روزرسانی تراکنش');
+        throw new Error(message);
+      }
+
+      await loadTransactions();
 
       setIsEditModalOpen(false);
       setEditingTransaction(null);

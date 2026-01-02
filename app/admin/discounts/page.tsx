@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { adminApiClient, DiscountCode } from '@/lib/api';
+import { DiscountCode } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,28 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+
+async function fetchDiscountsList(): Promise<DiscountCode[]> {
+  const response = await fetch('/api/admin/discounts', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load discounts');
+  }
+  return response.json();
+}
+
+async function fetchDiscountDetails(discountId: string): Promise<DiscountCode> {
+  const response = await fetch(`/api/admin/discounts/${discountId}`, {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load discount');
+  }
+  return response.json();
+}
 
 export default function DiscountsPage() {
   const router = useRouter();
@@ -39,6 +61,11 @@ export default function DiscountsPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const loadDiscounts = async () => {
+    const data = await fetchDiscountsList();
+    setDiscounts(data);
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.replace('/login');
@@ -52,8 +79,7 @@ export default function DiscountsPage() {
 
     async function fetchDiscounts() {
       try {
-        const data = await adminApiClient.getDiscountCodes();
-        setDiscounts(data);
+        await loadDiscounts();
       } catch (error) {
         console.error('Error fetching discounts:', error);
       } finally {
@@ -112,7 +138,7 @@ export default function DiscountsPage() {
 
   const handleEdit = async (discountId: string) => {
     try {
-      const discount = await adminApiClient.getDiscountCode(discountId);
+      const discount = await fetchDiscountDetails(discountId);
       
       // Format dates if they exist
       let startDate = '';
@@ -154,7 +180,7 @@ export default function DiscountsPage() {
 
     setIsSubmitting(true);
     try {
-      const discountData: Partial<DiscountCode> = {
+      const discountData = {
         code: formData.code,
         amount: parseFloat(formData.amount),
         type: formData.type,
@@ -166,17 +192,25 @@ export default function DiscountsPage() {
         minimum_amount: formData.minimum_amount ? parseFloat(formData.minimum_amount) : undefined,
       };
 
-      if (editingDiscountId) {
-        await adminApiClient.updateDiscountCode(editingDiscountId, discountData);
-      } else {
-        await adminApiClient.createDiscountCode(discountData);
+      const endpoint = editingDiscountId
+        ? `/api/admin/discounts/${editingDiscountId}`
+        : '/api/admin/discounts';
+      const method = editingDiscountId ? 'PATCH' : 'POST';
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(discountData),
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در ذخیره کد تخفیف');
+        throw new Error(message);
       }
-      
-      // Refresh discounts list
-      const updatedDiscounts = await adminApiClient.getDiscountCodes();
-      setDiscounts(updatedDiscounts);
-      
-      // Reset form and close modal
+
+      await loadDiscounts();
+
       setFormData({
         code: '',
         amount: '',
@@ -205,9 +239,17 @@ export default function DiscountsPage() {
     }
 
     try {
-      await adminApiClient.deleteDiscountCode(id);
-      const updatedDiscounts = await adminApiClient.getDiscountCodes();
-      setDiscounts(updatedDiscounts);
+      const response = await fetch(`/api/admin/discounts/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const message = await response.text().catch(() => 'خطا در حذف کد تخفیف');
+        throw new Error(message);
+      }
+
+      await loadDiscounts();
     } catch (error: any) {
       console.error('Error deleting discount:', error);
       alert(error.message || 'خطا در حذف کد تخفیف');
