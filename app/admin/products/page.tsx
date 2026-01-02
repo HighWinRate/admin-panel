@@ -719,7 +719,9 @@ export default function ProductsPage() {
                     setThumbnailPreview(null);
                     if (editingProductId && formData.thumbnail) {
                       // Keep existing thumbnail preview
-                      setThumbnailPreview(`${API_URL}/product/${editingProductId}/thumbnail`);
+                      if (formData.thumbnail) {
+                        setThumbnailPreview(buildThumbnailUrl(formData.thumbnail));
+                      }
                     }
                   }}
                   className="mt-2"
@@ -731,14 +733,16 @@ export default function ProductsPage() {
             {!thumbnailPreview && editingProductId && formData.thumbnail && (
               <div className="mt-4">
                 <p className="text-sm text-muted-foreground mb-2">تصویر فعلی:</p>
-                <img
-                  src={`${API_URL}/product/${editingProductId}/thumbnail`}
-                  alt="Current thumbnail"
-                  className="w-full h-48 object-cover rounded-lg border"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+                {formData.thumbnail && (
+                  <img
+                    src={buildThumbnailUrl(formData.thumbnail) ?? undefined}
+                    alt="Current thumbnail"
+                    className="w-full h-48 object-cover rounded-lg border"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>
