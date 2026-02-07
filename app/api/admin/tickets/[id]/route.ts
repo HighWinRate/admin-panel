@@ -1,24 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-async function requireAdmin() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.user) {
-    return { error: new NextResponse('Authentication required', { status: 401 }) };
-  }
-  if (session.user.user_metadata?.role !== 'admin' && session.user.user_metadata?.role !== 'support') {
-    return { error: new NextResponse('Forbidden', { status: 403 }) };
-  }
-  return { user: session.user };
-}
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin({ allowSupport: true });
   if (auth?.error) {
     return auth.error;
   }
@@ -26,7 +12,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('tickets')
-    .select('*, user:users(*), assigned_to:users(*)')
+    .select('*, user:users!user_id(*), assigned_to_user:users!assigned_to(*)')
     .eq('id', id)
     .single();
 
@@ -42,7 +28,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin({ allowSupport: true });
   if (auth?.error) {
     return auth.error;
   }
@@ -58,7 +44,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .from('tickets')
     .update(payload)
     .eq('id', id)
-    .select('*, user:users(*), assigned_to:users(*)')
+    .select('*, user:users!user_id(*), assigned_to_user:users!assigned_to(*)')
     .single();
 
   if (error) {

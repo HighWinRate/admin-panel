@@ -1,23 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-async function requireAdmin() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.user) {
-    return { error: new NextResponse('Authentication required', { status: 401 }) };
-  }
-  if (session.user.user_metadata?.role !== 'admin' && session.user.user_metadata?.role !== 'support') {
-    return { error: new NextResponse('Forbidden', { status: 403 }) };
-  }
-  return { user: session.user };
-}
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin({ allowSupport: true });
   if (auth?.error) {
     return auth.error;
   }
@@ -32,7 +18,7 @@ export async function GET(request: Request) {
   const admin = createAdminClient();
   let query = admin
     .from('tickets')
-    .select('*, user:users(*), assigned_to:users(*)', { count: 'exact' });
+    .select('*, user:users!user_id(*), assigned_to_user:users!assigned_to(*)', { count: 'exact' });
 
   if (status) query = query.eq('status', status);
   if (priority) query = query.eq('priority', priority);

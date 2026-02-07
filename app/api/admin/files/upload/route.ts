@@ -1,21 +1,7 @@
 import { Buffer } from 'buffer';
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createFile, uploadFileToStorage } from '@/lib/data/files';
-
-async function requireAdmin() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.user) {
-    return { error: new NextResponse('Authentication required', { status: 401 }) };
-  }
-  if (session.user.user_metadata?.role !== 'admin') {
-    return { error: new NextResponse('Forbidden', { status: 403 }) };
-  }
-  return { user: session.user };
-}
+import { requireAdmin } from '@/lib/auth';
 
 export async function POST(request: Request) {
   const auth = await requireAdmin();
