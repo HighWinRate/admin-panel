@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { ImageUpload, UploadedImage } from '@/components/ImageUpload';
 
 async function fetchTicketsList(params: {
   page: number;
@@ -119,6 +120,7 @@ export default function TicketsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [updating, setUpdating] = useState(false);
   const [newMessage, setNewMessage] = useState('');
+  const [messageImages, setMessageImages] = useState<UploadedImage[]>([]);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
 
@@ -225,8 +227,10 @@ export default function TicketsPage() {
         content: newMessage.trim(),
         type: 'support',
         is_internal: false,
+        attachments: messageImages,
       });
       setNewMessage('');
+      setMessageImages([]);
       const msgs = await fetchTicketMessages(selectedTicket.id);
       setMessages(msgs);
       const updated = await fetchTicketDetails(selectedTicket.id);
@@ -419,6 +423,7 @@ export default function TicketsPage() {
             setIsDetailModalOpen(false);
             setSelectedTicket(null);
             setNewMessage('');
+            setMessageImages([]);
             setMessages([]);
           }
         }}>
@@ -525,6 +530,30 @@ export default function TicketsPage() {
                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                           {msg.content}
                         </p>
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            {msg.attachments.map((attachment: any, idx: number) => (
+                              <a
+                                key={idx}
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative group border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-500 transition-colors"
+                              >
+                                <img
+                                  src={attachment.url}
+                                  alt={attachment.name}
+                                  className="w-full h-32 object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                  <span className="opacity-0 group-hover:opacity-100 text-white text-xs bg-black/50 px-2 py-1 rounded">
+                                    مشاهده
+                                  </span>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -545,6 +574,11 @@ export default function TicketsPage() {
                       rows={4}
                       required
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                    />
+                    <ImageUpload 
+                      onImagesChange={setMessageImages}
+                      maxImages={5}
+                      disabled={sendingMessage}
                     />
                     <div className="flex gap-2">
                       <Button

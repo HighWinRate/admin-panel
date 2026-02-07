@@ -58,6 +58,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       content: body.content,
       type: body.type || 'support',
       is_internal: body.is_internal ?? false,
+      attachments: body.attachments || [],
     })
     .select('*, user:users(*)')
     .single();
