@@ -66,29 +66,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     const syncSession = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+      try {
+        // Add a timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Session sync timeout')), 10000);
+        });
 
-      if (!isMounted) return;
+        const sessionPromise = supabase.auth.getSession();
 
-      if (error) {
-        console.error('Failed to load Supabase session:', error);
-        setUser(null);
+        const {
+          data: { session },
+          error,
+        } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+
+        clearTimeout(timeoutId);
+
+        if (!isMounted) return;
+
+        if (error) {
+          console.error('Failed to load Supabase session:', error);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          await fetchUserProfile(session.user.id, session.user);
+        } else {
+          setUser(null);
+        }
+
         setLoading(false);
-        return;
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
       }
-
-      if (session?.user) {
-        await fetchUserProfile(session.user.id, session.user);
-      } else {
-        setUser(null);
-      }
-
-      setLoading(false);
     };
 
     const {
@@ -110,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, [supabase, fetchUserProfile]);
