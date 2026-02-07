@@ -16,7 +16,8 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -26,7 +27,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const { data, error } = await admin
     .from('tickets')
     .select('*, user:users(*), assigned_to:users(*)')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error) {
@@ -39,7 +40,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json(data);
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -55,7 +57,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const { data, error } = await admin
     .from('tickets')
     .update(payload)
-    .eq('id', params.id)
+    .eq('id', id)
     .select('*, user:users(*), assigned_to:users(*)')
     .single();
 

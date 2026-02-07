@@ -16,7 +16,8 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string; productId: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string; productId: string }> }) {
+  const { id, productId } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -26,8 +27,8 @@ export async function DELETE(_: Request, { params }: { params: { id: string; pro
   const { error } = await admin
     .from('user_purchases')
     .delete()
-    .eq('user_id', params.id)
-    .eq('product_id', params.productId);
+    .eq('user_id', id)
+    .eq('product_id', productId);
 
   if (error) {
     return new NextResponse(error.message, { status: 500 });

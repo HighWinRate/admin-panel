@@ -16,20 +16,22 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
-  const course = await getCourseById(params.id);
+  const course = await getCourseById(id);
   if (!course) {
     return new NextResponse('Course not found', { status: 404 });
   }
   return NextResponse.json(course);
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -49,17 +51,18 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     fileIds: body.fileIds,
   };
 
-  const updated = await updateCourse(params.id, payload);
+  const updated = await updateCourse(id, payload);
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
-  await deleteCourse(params.id);
+  await deleteCourse(id);
   return NextResponse.json({ success: true });
 }
 

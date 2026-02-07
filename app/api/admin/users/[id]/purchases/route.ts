@@ -16,7 +16,8 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -26,7 +27,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const { data, error } = await admin
     .from('user_purchases')
     .select(`*, product:products(*)`)
-    .eq('user_id', params.id)
+    .eq('user_id', id)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -36,7 +37,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json(data || []);
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -51,7 +53,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const { data, error } = await admin
     .from('user_purchases')
     .insert({
-      user_id: params.id,
+      user_id: id,
       product_id: body.productId,
       purchased_at: new Date().toISOString(),
     })

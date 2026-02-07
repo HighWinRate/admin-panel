@@ -22,7 +22,7 @@ async function requireAdmin() {
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireAdmin();
   if (auth?.error) {
@@ -36,7 +36,7 @@ export async function POST(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const filename = `${params.id}/${Date.now()}-${file.name}`.replace(/\s+/g, '_');
+  const filename = `${id}/${Date.now()}-${file.name}`.replace(/\s+/g, '_');
 
   const admin = createAdminClient();
   const { error: uploadError } = await admin.storage
@@ -50,7 +50,7 @@ export async function POST(
     return new NextResponse(`Upload failed: ${uploadError.message}`, { status: 500 });
   }
 
-  const updatedCourse = await updateCourse(params.id, { thumbnail: filename });
+  const updatedCourse = await updateCourse(id, { thumbnail: filename });
   return NextResponse.json({
     ...updatedCourse,
     thumbnailUrl: buildCourseThumbnailUrl(updatedCourse.thumbnail),

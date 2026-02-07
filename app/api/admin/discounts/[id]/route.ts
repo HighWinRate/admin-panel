@@ -16,20 +16,22 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
-  const discount = await getDiscountCodeById(params.id);
+  const discount = await getDiscountCodeById(id);
   if (!discount) {
     return new NextResponse('Discount not found', { status: 404 });
   }
   return NextResponse.json(discount);
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -48,17 +50,18 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     minimum_amount: body.minimum_amount != null ? Number(body.minimum_amount) : null,
   };
 
-  const updated = await updateDiscountCode(params.id, payload);
+  const updated = await updateDiscountCode(id, payload);
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
-  await deleteDiscountCode(params.id);
+  await deleteDiscountCode(id);
   return NextResponse.json({ success: true });
 }
 

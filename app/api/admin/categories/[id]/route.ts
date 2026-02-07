@@ -16,20 +16,22 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
-  const category = await getCategory(params.id);
+  const category = await getCategory(id);
   if (!category) {
     return new NextResponse('Category not found', { status: 404 });
   }
   return NextResponse.json(category);
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -46,17 +48,18 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     parent_id: body.parent_id || null,
   };
 
-  const updated = await updateCategory(params.id, payload);
+  const updated = await updateCategory(id, payload);
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
-  await deleteCategory(params.id);
+  await deleteCategory(id);
   return NextResponse.json({ success: true });
 }
 

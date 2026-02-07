@@ -16,14 +16,15 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.from('users').select('*').eq('id', params.id).single();
+  const { data, error } = await admin.from('users').select('*').eq('id', id).single();
   if (error) {
     if (error.code === 'PGRST116') {
       return new NextResponse('User not found', { status: 404 });
@@ -34,7 +35,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json(data);
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -54,7 +56,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   if (Object.keys(authUpdates).length > 0) {
-    const { error } = await admin.auth.admin.updateUserById(params.id, authUpdates);
+    const { error } = await admin.auth.admin.updateUserById(id, authUpdates);
     if (error) {
       return new NextResponse(error.message, { status: 500 });
     }
@@ -68,7 +70,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const { data, error } = await admin
       .from('users')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .select('*')
       .single();
 
@@ -82,19 +84,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
   }
 
   const admin = createAdminClient();
-  const { error: deleteAuthError } = await admin.auth.admin.deleteUser(params.id);
+  const { error: deleteAuthError } = await admin.auth.admin.deleteUser(id);
   if (deleteAuthError) {
     return new NextResponse(deleteAuthError.message, { status: 500 });
   }
 
-  const { error: deleteProfileError } = await admin.from('users').delete().eq('id', params.id);
+  const { error: deleteProfileError } = await admin.from('users').delete().eq('id', id);
   if (deleteProfileError) {
     return new NextResponse(deleteProfileError.message, { status: 500 });
   }

@@ -16,7 +16,8 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -34,7 +35,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (body.gateway) payload.gateway = body.gateway;
   if (body.paid_at) payload.paid_at = new Date(body.paid_at).toISOString();
 
-  const updated = await updateTransactionById(params.id, payload);
+  const updated = await updateTransactionById(id, payload);
   return NextResponse.json(updated);
 }
 

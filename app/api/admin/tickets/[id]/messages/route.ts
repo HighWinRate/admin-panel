@@ -16,7 +16,8 @@ async function requireAdmin() {
   return { user: session.user };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -26,7 +27,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const { data, error } = await admin
     .from('ticket_messages')
     .select('*, user:users(*)')
-    .eq('ticket_id', params.id)
+    .eq('ticket_id', id)
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -36,7 +37,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return NextResponse.json(data || []);
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const auth = await requireAdmin();
   if (auth?.error) {
     return auth.error;
@@ -51,7 +53,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const { data, error } = await admin
     .from('ticket_messages')
     .insert({
-      ticket_id: params.id,
+      ticket_id: id,
       user_id: auth.user.id,
       content: body.content,
       type: body.type || 'support',
