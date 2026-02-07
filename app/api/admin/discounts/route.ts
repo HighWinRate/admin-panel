@@ -42,11 +42,11 @@ export async function POST(request: Request) {
     amount: Number(body.amount),
     type: body.type,
     is_active: body.is_active ?? true,
-    max_uses: body.max_uses != null ? Number(body.max_uses) : null,
+    max_uses: body.max_uses != null ? Number(body.max_uses) : undefined,
     start_date: body.start_date || null,
     end_date: body.end_date || null,
     description: body.description || null,
-    minimum_amount: body.minimum_amount != null ? Number(body.minimum_amount) : null,
+    minimum_amount: body.minimum_amount != null ? Number(body.minimum_amount) : undefined,
   };
 
   const discount = await createDiscountCode(payload);

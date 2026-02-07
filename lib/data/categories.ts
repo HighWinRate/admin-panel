@@ -4,7 +4,7 @@ import { Category } from '@/lib/types';
 export async function listCategories(): Promise<Category[]> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<Category>('categories')
+    .from('categories')
     .select('*')
     .order('sort_order', { ascending: true });
 
@@ -17,7 +17,7 @@ export async function listCategories(): Promise<Category[]> {
 export async function getCategory(categoryId: string): Promise<Category | null> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<Category>('categories')
+    .from('categories')
     .select('*')
     .eq('id', categoryId)
     .single();
@@ -34,7 +34,7 @@ export async function getCategory(categoryId: string): Promise<Category | null> 
 export async function createCategory(payload: Partial<Category>): Promise<Category> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<Category>('categories')
+    .from('categories')
     .insert(payload)
     .select('*')
     .single();
@@ -51,7 +51,7 @@ export async function createCategory(payload: Partial<Category>): Promise<Catego
 export async function updateCategory(categoryId: string, payload: Partial<Category>): Promise<Category> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<Category>('categories')
+    .from('categories')
     .update(payload)
     .eq('id', categoryId)
     .select('*')

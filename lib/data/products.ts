@@ -35,8 +35,12 @@ async function syncProductCourses(
   await client.from('product_courses').insert(rows);
 }
 
+type ProductRecord = Product & {
+  category_id?: string | null;
+};
+
 function mapProductRelations(
-  products: Product[],
+  products: ProductRecord[],
   categories: Category[],
   productCourses: ProductRelation[],
   courses: Course[],
@@ -78,7 +82,7 @@ function mapProductRelations(
 
   return products.map((product) => ({
     ...product,
-    category: product.category_id ? categoryMap.get(product.category_id) || null : null,
+    category: (product as any).category_id ? categoryMap.get((product as any).category_id) || undefined : undefined,
     courses: (productCoursesMap.get(product.id) || [])
       .map((courseId) => courseMap.get(courseId))
       .filter(Boolean) as Course[],
@@ -106,7 +110,7 @@ export async function listProducts(): Promise<Product[]> {
 
   const productIds = products ? products.map((product) => product.id) : [];
   const productCoursesResult = await client
-    .from<ProductRelation>('product_courses')
+    .from('product_courses')
     .select('product_id, course_id')
     .in('product_id', productIds);
 
@@ -117,14 +121,14 @@ export async function listProducts(): Promise<Product[]> {
 
   const courseIds = uniqueIds(productCoursesResult.data?.map((relation) => relation.course_id) || []);
   const courseResult = await client
-    .from<Course>('courses')
-    .select('id, title')
+    .from('courses')
+    .select('*')
     .in('id', courseIds);
 
   const fileIds = uniqueIds(filesProductsResult.data?.map((relation) => relation.file_id) || []);
   const fileResult = await client
-    .from<File>('files')
-    .select('id, name, type, path, size, isFree, mimetype, url, created_at')
+    .from('files')
+    .select('*')
     .in('id', fileIds);
 
   if (productCoursesResult.error) {
@@ -152,7 +156,7 @@ export async function listProducts(): Promise<Product[]> {
 
 export async function getProductById(productId: string): Promise<Product | null> {
   const client = createAdminClient();
-  const { data: product, error } = await client.from<Product>('products').select('*').eq('id', productId).single();
+  const { data: product, error } = await client.from('products').select('*').eq('id', productId).single();
   if (error) {
     if (error.code === 'PGRST116') {
       return null;
@@ -164,9 +168,9 @@ export async function getProductById(productId: string): Promise<Product | null>
   }
 
   const [{ data: category }, productCoursesResult, filesProductsResult] = await Promise.all([
-    client.from<Category>('categories').select('id, name, slug').eq('id', product.category_id).single(),
+    client.from('categories').select('id, name, slug').eq('id', product.category_id).single(),
     client
-      .from<ProductRelation>('product_courses')
+      .from('product_courses')
       .select('course_id')
       .eq('product_id', productId),
     client
@@ -184,14 +188,14 @@ export async function getProductById(productId: string): Promise<Product | null>
 
   const courseIds = uniqueIds(productCoursesResult.data?.map((relation) => relation.course_id) || []);
   const courseResult = await client
-    .from<Course>('courses')
-    .select('id, title')
+    .from('courses')
+    .select('*')
     .in('id', courseIds);
 
   const fileIds = uniqueIds(filesProductsResult.data?.map((relation) => relation.file_id) || []);
   const fileResult = await client
-    .from<File>('files')
-    .select('id, name, type, path, size, isFree, mimetype, url, created_at')
+    .from('files')
+    .select('*')
     .in('id', fileIds);
 
   if (courseResult.error) {

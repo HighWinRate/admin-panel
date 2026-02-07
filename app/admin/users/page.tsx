@@ -396,7 +396,7 @@ export default function UsersPage() {
                     محصولات
                   </Button>
                   <Button 
-                    variant="danger" 
+                    variant="destructive" 
                     size="sm"
                     onClick={() => handleDelete(u)}
                   >
@@ -410,9 +410,8 @@ export default function UsersPage() {
       </div>
 
       {/* Edit Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => {
+      <Dialog open={isEditModalOpen} onOpenChange={(open) => {
+        if (!open) {
           setIsEditModalOpen(false);
           setEditingUser(null);
           setFormData({
@@ -423,38 +422,55 @@ export default function UsersPage() {
             password: '',
           });
           setErrors({});
-        }}
-        title="ویرایش کاربر"
-        size="md"
-      >
-        <form onSubmit={handleSubmitEdit} className="space-y-4">
-          <Input
-            label="نام *"
-            name="first_name"
-            value={formData.first_name}
-            onChange={handleInputChange}
-            error={errors.first_name}
-            required
-          />
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>ویرایش کاربر</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmitEdit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">نام *</Label>
+              <Input
+                id="first_name"
+                name="first_name"
+                value={formData.first_name}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.first_name && (
+                <p className="text-sm text-destructive">{errors.first_name}</p>
+              )}
+            </div>
 
-          <Input
-            label="نام خانوادگی *"
-            name="last_name"
-            value={formData.last_name}
-            onChange={handleInputChange}
-            error={errors.last_name}
-            required
-          />
+            <div className="space-y-2">
+              <Label htmlFor="last_name">نام خانوادگی *</Label>
+              <Input
+                id="last_name"
+                name="last_name"
+                value={formData.last_name}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.last_name && (
+                <p className="text-sm text-destructive">{errors.last_name}</p>
+              )}
+            </div>
 
-          <Input
-            label="ایمیل *"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            error={errors.email}
-            required
-          />
+            <div className="space-y-2">
+              <Label htmlFor="email">ایمیل *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email}</p>
+              )}
+            </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -474,17 +490,22 @@ export default function UsersPage() {
             </select>
           </div>
 
-          <Input
-            label="رمز عبور جدید (اختیاری)"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleInputChange}
-            error={errors.password}
-            placeholder="در صورت عدم تغییر، خالی بگذارید"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="password">رمز عبور جدید (اختیاری)</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="در صورت عدم تغییر، خالی بگذارید"
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            )}
+          </div>
 
-          <div className="flex gap-2 justify-end pt-4">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -503,35 +524,38 @@ export default function UsersPage() {
             >
               انصراف
             </Button>
-            <Button type="submit" variant="primary" isLoading={isSubmitting}>
-              ذخیره تغییرات
+            <Button type="submit" variant="default" disabled={isSubmitting}>
+              {isSubmitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
+      <Dialog open={isDeleteModalOpen} onOpenChange={(open) => {
+        if (!open) {
           setIsDeleteModalOpen(false);
           setEditingUser(null);
-        }}
-        title="تأیید حذف کاربر"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700 dark:text-gray-300">
-            آیا مطمئن هستید که می‌خواهید کاربر{' '}
-            <strong>
-              {editingUser?.first_name} {editingUser?.last_name}
-            </strong>{' '}
-            را حذف کنید؟
-          </p>
-          <p className="text-sm text-red-600 dark:text-red-400">
-            این عمل غیرقابل بازگشت است.
-          </p>
-          <div className="flex gap-2 justify-end pt-4">
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>تأیید حذف کاربر</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-gray-700 dark:text-gray-300">
+              آیا مطمئن هستید که می‌خواهید کاربر{' '}
+              <strong>
+                {editingUser?.first_name} {editingUser?.last_name}
+              </strong>{' '}
+              را حذف کنید؟
+            </p>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              این عمل غیرقابل بازگشت است.
+            </p>
+          </div>
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -544,27 +568,28 @@ export default function UsersPage() {
             </Button>
             <Button
               type="button"
-              variant="danger"
+              variant="destructive"
               onClick={handleConfirmDelete}
             >
               حذف کاربر
             </Button>
-          </div>
-        </div>
-      </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Products Management Modal */}
-      <Modal
-        isOpen={isProductsModalOpen}
-        onClose={() => {
+      <Dialog open={isProductsModalOpen} onOpenChange={(open) => {
+        if (!open) {
           setIsProductsModalOpen(false);
           setEditingUser(null);
           setUserPurchases([]);
           setSelectedProductId('');
-        }}
-        title={`مدیریت محصولات کاربر: ${editingUser?.first_name} ${editingUser?.last_name}`}
-        size="lg"
-      >
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>مدیریت محصولات کاربر: {editingUser?.first_name} {editingUser?.last_name}</DialogTitle>
+          </DialogHeader>
         {loadingPurchases ? (
           <div className="text-center py-8">
             <p className="text-gray-600 dark:text-gray-400">در حال بارگذاری...</p>
@@ -591,10 +616,9 @@ export default function UsersPage() {
                 </select>
                 <Button
                   onClick={handleAddProduct}
-                  isLoading={addingProduct}
                   disabled={!selectedProductId || addingProduct}
                 >
-                  افزودن
+                  {addingProduct ? 'در حال افزودن...' : 'افزودن'}
                 </Button>
               </div>
             </div>
@@ -630,7 +654,7 @@ export default function UsersPage() {
                             </div>
                           </div>
                           <Button
-                            variant="danger"
+                            variant="destructive"
                             size="sm"
                             onClick={() => handleRemoveProduct(product.id)}
                           >
@@ -645,7 +669,8 @@ export default function UsersPage() {
             </div>
           </div>
         )}
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -69,11 +69,11 @@ async function enrichFiles(files: File[]) {
 
   const [productRelationsRes, courseRelationsRes] = await Promise.all([
     client
-      .from<FileRelation>('files_products')
+      .from('files_products')
       .select('file_id, product_id')
       .in('file_id', fileIds),
     client
-      .from<FileCourseRelation>('files_courses_courses')
+      .from('files_courses_courses')
       .select('filesId, coursesId')
       .in('filesId', fileIds),
   ]);
@@ -89,8 +89,8 @@ async function enrichFiles(files: File[]) {
   const courseIds = uniqueIds(courseRelationsRes.data?.map((relation) => relation.coursesId) || []);
 
   const [productsRes, coursesRes] = await Promise.all([
-    client.from<Product>('products').select('id, title').in('id', productIds),
-    client.from<Course>('courses').select('id, title').in('id', courseIds),
+    client.from('products').select('id, title').in('id', productIds),
+    client.from('courses').select('id, title').in('id', courseIds),
   ]);
 
   if (productsRes.error) {
@@ -100,10 +100,10 @@ async function enrichFiles(files: File[]) {
     throw coursesRes.error;
   }
 
-  const productMap = new Map<string, Product>();
+  const productMap = new Map<string, any>();
   productsRes.data?.forEach((product) => productMap.set(product.id, product));
 
-  const courseMap = new Map<string, Course>();
+  const courseMap = new Map<string, any>();
   coursesRes.data?.forEach((course) => courseMap.set(course.id, course));
 
   return files.map((file) => {
@@ -131,7 +131,7 @@ async function enrichFiles(files: File[]) {
 
 export async function listFiles(): Promise<File[]> {
   const client = createAdminClient();
-  const { data: files, error } = await client.from<File>('files').select('*').order('created_at', { ascending: false });
+  const { data: files, error } = await client.from('files').select('*').order('created_at', { ascending: false });
   if (error) {
     throw error;
   }
@@ -143,7 +143,7 @@ export async function listFiles(): Promise<File[]> {
 
 export async function getFileById(fileId: string): Promise<File | null> {
   const client = createAdminClient();
-  const { data: file, error } = await client.from<File>('files').select('*').eq('id', fileId).single();
+  const { data: file, error } = await client.from('files').select('*').eq('id', fileId).single();
   if (error) {
     if (error.code === 'PGRST116') {
       return null;

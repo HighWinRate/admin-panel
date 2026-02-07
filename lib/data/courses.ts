@@ -72,8 +72,8 @@ function mapCourses(
     ...course,
     category:
       course.category_id && categoryMap.has(course.category_id)
-        ? categoryMap.get(course.category_id) || null
-        : course.category || null,
+        ? categoryMap.get(course.category_id) || undefined
+        : course.category || undefined,
     files: (courseFilesMap.get(course.id) || [])
       .map((fileId) => fileMap.get(fileId))
       .filter(Boolean) as File[],
@@ -84,8 +84,8 @@ export async function listCourses(): Promise<Course[]> {
   const client = createAdminClient();
   const [{ data: courses, error: coursesError }, { data: categories, error: categoriesError }] =
     await Promise.all([
-      client.from<CourseRecord>('courses').select('*').order('sort_order', { ascending: true }),
-      client.from<Category>('categories').select('id, name, slug'),
+      client.from('courses').select('*').order('sort_order', { ascending: true }),
+      client.from('categories').select('id, name, slug'),
     ]);
 
   if (coursesError) {
@@ -98,7 +98,7 @@ export async function listCourses(): Promise<Course[]> {
   const courseIds = courses ? courses.map((course) => course.id) : [];
 
   const { data: fileRelations, error: fileRelationsError } = await client
-    .from<FileRelation>('files_courses_courses')
+    .from('files_courses_courses')
     .select('filesId, coursesId')
     .in('coursesId', courseIds);
 
@@ -110,7 +110,7 @@ export async function listCourses(): Promise<Course[]> {
     fileRelations?.map((relation) => relation.filesId) || [],
   );
   const { data: files, error: filesError } = await client
-    .from<File>('files')
+    .from('files')
     .select('id, name, type, path, size, isFree, mimetype, url, created_at')
     .in('id', fileIds);
 
@@ -124,7 +124,7 @@ export async function listCourses(): Promise<Course[]> {
 export async function getCourseById(courseId: string): Promise<Course | null> {
   const client = createAdminClient();
   const { data: course, error } = await client
-    .from<CourseRecord>('courses')
+    .from('courses')
     .select('*')
     .eq('id', courseId)
     .single();
@@ -141,19 +141,19 @@ export async function getCourseById(courseId: string): Promise<Course | null> {
 
   const [{ data: category }, fileRelationsResult] = await Promise.all([
     client
-      .from<Category>('categories')
+      .from('categories')
       .select('id, name, slug')
       .eq('id', course.category_id)
       .single(),
     client
-      .from<FileRelation>('files_courses_courses')
+      .from('files_courses_courses')
       .select('filesId')
       .eq('coursesId', courseId),
   ]);
 
   const fileIds = uniqueIds(fileRelationsResult.data?.map((relation) => relation.filesId) || []);
   const { data: files, error: filesError } = await client
-    .from<File>('files')
+    .from('files')
     .select('id, name, type, path, size, isFree, mimetype, url, created_at')
     .in('id', fileIds);
 

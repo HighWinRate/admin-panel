@@ -274,7 +274,7 @@ export default function DiscountsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">مدیریت کدهای تخفیف</h1>
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+        <Button variant="default" onClick={() => setIsModalOpen(true)}>
           افزودن کد تخفیف جدید
         </Button>
       </div>
@@ -313,7 +313,7 @@ export default function DiscountsPage() {
                 ویرایش
               </Button>
               <Button
-                variant="danger"
+                variant="destructive"
                 size="sm"
                 onClick={() => handleDelete(discount.id)}
               >
@@ -324,9 +324,8 @@ export default function DiscountsPage() {
         ))}
       </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => {
+      <Dialog open={isModalOpen} onOpenChange={(open) => {
+        if (!open) {
           setIsModalOpen(false);
           setEditingDiscountId(null);
           setFormData({
@@ -341,34 +340,46 @@ export default function DiscountsPage() {
             minimum_amount: '',
           });
           setErrors({});
-        }}
-        title={editingDiscountId ? 'ویرایش کد تخفیف' : 'افزودن کد تخفیف جدید'}
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="کد تخفیف *"
-            name="code"
-            value={formData.code}
-            onChange={handleInputChange}
-            error={errors.code}
-            required
-            placeholder="مثال: SAVE20"
-          />
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingDiscountId ? 'ویرایش کد تخفیف' : 'افزودن کد تخفیف جدید'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="code">کد تخفیف *</Label>
+              <Input
+                id="code"
+                name="code"
+                value={formData.code}
+                onChange={handleInputChange}
+                required
+                placeholder="مثال: SAVE20"
+              />
+              {errors.code && (
+                <p className="text-sm text-destructive">{errors.code}</p>
+              )}
+            </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="مقدار تخفیف *"
-              name="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              max={formData.type === 'percentage' ? '100' : undefined}
-              value={formData.amount}
-              onChange={handleInputChange}
-              error={errors.amount}
-              required
-            />
+            <div className="space-y-2">
+              <Label htmlFor="amount">مقدار تخفیف *</Label>
+              <Input
+                id="amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                max={formData.type === 'percentage' ? '100' : undefined}
+                value={formData.amount}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.amount && (
+                <p className="text-sm text-destructive">{errors.amount}</p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -400,47 +411,65 @@ export default function DiscountsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="حداکثر تعداد استفاده"
-              name="max_uses"
-              type="number"
-              min="1"
-              value={formData.max_uses}
-              onChange={handleInputChange}
-              error={errors.max_uses}
-              placeholder="خالی = نامحدود"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="max_uses">حداکثر تعداد استفاده</Label>
+              <Input
+                id="max_uses"
+                name="max_uses"
+                type="number"
+                min="1"
+                value={formData.max_uses}
+                onChange={handleInputChange}
+                placeholder="خالی = نامحدود"
+              />
+              {errors.max_uses && (
+                <p className="text-sm text-destructive">{errors.max_uses}</p>
+              )}
+            </div>
 
-            <Input
-              label="حداقل مبلغ سفارش ($)"
-              name="minimum_amount"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.minimum_amount}
-              onChange={handleInputChange}
-              error={errors.minimum_amount}
-              placeholder="خالی = بدون محدودیت"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="minimum_amount">حداقل مبلغ سفارش ($)</Label>
+              <Input
+                id="minimum_amount"
+                name="minimum_amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.minimum_amount}
+                onChange={handleInputChange}
+                placeholder="خالی = بدون محدودیت"
+              />
+              {errors.minimum_amount && (
+                <p className="text-sm text-destructive">{errors.minimum_amount}</p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="تاریخ شروع"
-              name="start_date"
-              type="datetime-local"
-              value={formData.start_date}
-              onChange={handleInputChange}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="start_date">تاریخ شروع</Label>
+              <Input
+                id="start_date"
+                name="start_date"
+                type="datetime-local"
+                value={formData.start_date}
+                onChange={handleInputChange}
+              />
+            </div>
 
-            <Input
-              label="تاریخ پایان"
-              name="end_date"
-              type="datetime-local"
-              value={formData.end_date}
-              onChange={handleInputChange}
-              error={errors.end_date}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="end_date">تاریخ پایان</Label>
+              <Input
+                id="end_date"
+                name="end_date"
+                type="datetime-local"
+                value={formData.end_date}
+                onChange={handleInputChange}
+              />
+              {errors.end_date && (
+                <p className="text-sm text-destructive">{errors.end_date}</p>
+              )}
+            </div>
           </div>
 
           <div>
@@ -457,7 +486,7 @@ export default function DiscountsPage() {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -480,12 +509,13 @@ export default function DiscountsPage() {
             >
               انصراف
             </Button>
-            <Button type="submit" variant="primary" isLoading={isSubmitting}>
-              {editingDiscountId ? 'ذخیره تغییرات' : 'ایجاد کد تخفیف'}
+            <Button type="submit" variant="default" disabled={isSubmitting}>
+              {isSubmitting ? 'در حال ذخیره...' : editingDiscountId ? 'ذخیره تغییرات' : 'ایجاد کد تخفیف'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

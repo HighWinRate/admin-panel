@@ -414,16 +414,18 @@ export default function TicketsPage() {
 
       {/* Detail Modal */}
       {selectedTicket && (
-        <Modal
-          isOpen={isDetailModalOpen}
-          onClose={() => {
+        <Dialog open={isDetailModalOpen} onOpenChange={(open) => {
+          if (!open) {
             setIsDetailModalOpen(false);
             setSelectedTicket(null);
             setNewMessage('');
             setMessages([]);
-          }}
-          title={`تیکت: ${selectedTicket.subject}`}
-        >
+          }
+        }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>تیکت: {selectedTicket.subject}</DialogTitle>
+            </DialogHeader>
           <div className="space-y-6">
             <div>
               <h4 className="font-semibold text-gray-900 dark:text-white mb-2">توضیحات</h4>
@@ -547,10 +549,10 @@ export default function TicketsPage() {
                     <div className="flex gap-2">
                       <Button
                         type="submit"
-                        isLoading={sendingMessage}
+                        disabled={sendingMessage}
                         className="bg-primary-600 hover:bg-primary-700 text-white"
                       >
-                        ارسال پیام
+                        {sendingMessage ? 'در حال ارسال...' : 'ارسال پیام'}
                       </Button>
                     </div>
                   </form>
@@ -558,7 +560,8 @@ export default function TicketsPage() {
               )}
             </div>
           </div>
-        </Modal>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

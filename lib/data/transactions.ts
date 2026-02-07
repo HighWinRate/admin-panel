@@ -4,7 +4,7 @@ import { Transaction } from '@/lib/types';
 export async function listTransactions(): Promise<Transaction[]> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<Transaction>('transactions')
+    .from('transactions')
     .select(
       `
       *,
@@ -34,7 +34,7 @@ export async function updateTransactionById(
 ): Promise<Transaction> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<Transaction>('transactions')
+    .from('transactions')
     .update(payload)
     .eq('id', transactionId)
     .select('*')

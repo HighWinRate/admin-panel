@@ -52,6 +52,17 @@ async function fetchAdminCategories(): Promise<Category[]> {
   return response.json();
 }
 
+async function fetchFilesList(): Promise<FileType[]> {
+  const response = await fetch('/api/admin/files', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch files');
+  }
+  return response.json();
+}
+
 export default function CoursesPage() {
   const router = useRouter();
   const { user, isAuthenticated, loading } = useAuth();
@@ -368,21 +379,21 @@ export default function CoursesPage() {
                   مدت زمان: {course.duration_minutes} دقیقه
                 </p>
               )}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEdit(course.id)}
-              >
-                ویرایش
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleDelete(course.id)}
-              >
-                حذف
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(course.id)}
+                >
+                  ویرایش
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(course.id)}
+                >
+                  حذف
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -413,23 +424,24 @@ export default function CoursesPage() {
           }
         }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{editingCourseId ? 'ویرایش دوره' : 'افزودن دوره جدید'}</DialogTitle>
           </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">عنوان دوره *</Label>
-            <Input
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              required
-            />
-            {errors.title && (
-              <p className="text-sm text-destructive">{errors.title}</p>
-            )}
-          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">عنوان دوره *</Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+              />
+              {errors.title && (
+                <p className="text-sm text-destructive">{errors.title}</p>
+              )}
+            </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">توضیحات</Label>
@@ -483,6 +495,7 @@ export default function CoursesPage() {
               <Button type="button" variant="outline" onClick={handleAddKeyword}>
                 افزودن
               </Button>
+              </div>
             </div>
             {formData.keywords.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
@@ -649,6 +662,7 @@ export default function CoursesPage() {
               </div>
             </div>
           )}
+          </div>
 
           <DialogFooter>
             <Button
@@ -679,10 +693,7 @@ export default function CoursesPage() {
               {isSubmitting ? 'در حال ذخیره...' : editingCourseId ? 'ذخیره تغییرات' : 'ایجاد دوره'}
             </Button>
           </DialogFooter>
-        </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </form></DialogContent></Dialog></div>
   );
 }
 

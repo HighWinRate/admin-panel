@@ -43,7 +43,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     description: body.description || null,
     slug: body.slug || null,
     icon: body.icon || null,
-    sort_order: body.sort_order != null ? Number(body.sort_order) : null,
+    sort_order: body.sort_order != null ? Number(body.sort_order) : undefined,
     is_active: body.is_active,
     parent_id: body.parent_id || null,
   };

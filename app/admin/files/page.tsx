@@ -356,7 +356,7 @@ export default function FilesPage() {
 
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">مدیریت فایل‌ها</h1>
-        <Button variant="primary" onClick={() => setShowUploadModal(true)}>
+        <Button variant="default" onClick={() => setShowUploadModal(true)}>
           آپلود فایل جدید
         </Button>
       </div>
@@ -389,14 +389,14 @@ export default function FilesPage() {
                   دانلود
                 </Button>
                 <Button 
-                  variant="primary" 
+                  variant="default" 
                   size="sm"
                   onClick={() => handleEdit(file)}
                 >
                   ویرایش
                 </Button>
                 <Button 
-                  variant="danger" 
+                  variant="destructive" 
                   size="sm"
                   onClick={() => handleDelete(file.id)}
                 >
@@ -438,9 +438,10 @@ export default function FilesPage() {
                 )}
               </div>
 
-              <div className="mb-4">
+              <div className="mb-4 space-y-2">
+                <Label htmlFor="fileName">نام فایل</Label>
                 <Input
-                  label="نام فایل"
+                  id="fileName"
                   type="text"
                   value={fileName}
                   onChange={(e) => setFileName(e.target.value)}
@@ -548,8 +549,7 @@ export default function FilesPage() {
               <div className="flex gap-3">
                 <Button
                   type="submit"
-                  variant="primary"
-                  isLoading={uploading}
+                  variant="default"
                   disabled={uploading}
                 >
                   آپلود
@@ -589,9 +589,10 @@ export default function FilesPage() {
             )}
 
             <form onSubmit={handleUpdate}>
-              <div className="mb-4">
+              <div className="mb-4 space-y-2">
+                <Label htmlFor="editFileName">نام فایل</Label>
                 <Input
-                  label="نام فایل"
+                  id="editFileName"
                   type="text"
                   value={editFileName}
                   onChange={(e) => setEditFileName(e.target.value)}
@@ -699,8 +700,7 @@ export default function FilesPage() {
               <div className="flex gap-3">
                 <Button
                   type="submit"
-                  variant="primary"
-                  isLoading={saving}
+                  variant="default"
                   disabled={saving}
                 >
                   ذخیره

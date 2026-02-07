@@ -9,7 +9,7 @@ type DiscountPayload = Partial<DiscountCode> & {
 export async function listDiscountCodes(): Promise<DiscountCode[]> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<DiscountCode>('discount_codes')
+    .from('discount_codes')
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -22,7 +22,7 @@ export async function listDiscountCodes(): Promise<DiscountCode[]> {
 export async function getDiscountCodeById(id: string): Promise<DiscountCode | null> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<DiscountCode>('discount_codes')
+    .from('discount_codes')
     .select('*')
     .eq('id', id)
     .single();
@@ -39,7 +39,7 @@ export async function getDiscountCodeById(id: string): Promise<DiscountCode | nu
 export async function createDiscountCode(payload: DiscountPayload): Promise<DiscountCode> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<DiscountCode>('discount_codes')
+    .from('discount_codes')
     .insert(payload)
     .select('*')
     .single();
@@ -56,7 +56,7 @@ export async function createDiscountCode(payload: DiscountPayload): Promise<Disc
 export async function updateDiscountCode(id: string, payload: DiscountPayload): Promise<DiscountCode> {
   const client = createAdminClient();
   const { data, error } = await client
-    .from<DiscountCode>('discount_codes')
+    .from('discount_codes')
     .update(payload)
     .eq('id', id)
     .select('*')

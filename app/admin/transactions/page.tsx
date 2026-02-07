@@ -307,13 +307,12 @@ export default function TransactionsPage() {
       </div>
 
       {/* Edit Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={handleCloseModal}
-        title="ویرایش تراکنش"
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <Dialog open={isEditModalOpen} onOpenChange={(open) => { if (!open) handleCloseModal(); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>ویرایش تراکنش</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -336,73 +335,100 @@ export default function TransactionsPage() {
               )}
             </div>
 
-            <Input
-              label="مبلغ (USD)"
-              type="number"
-              name="amount"
-              value={formData.amount}
-              onChange={handleInputChange}
-              error={errors.amount}
-              min="0"
-              step="0.01"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="amount">مبلغ (USD)</Label>
+              <Input
+                id="amount"
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+              />
+              {errors.amount && (
+                <p className="text-sm text-destructive">{errors.amount}</p>
+              )}
+            </div>
 
-            <Input
-              label="مقدار تخفیف (USD)"
-              type="number"
-              name="discount_amount"
-              value={formData.discount_amount}
-              onChange={handleInputChange}
-              error={errors.discount_amount}
-              min="0"
-              step="0.01"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="discount_amount">مقدار تخفیف (USD)</Label>
+              <Input
+                id="discount_amount"
+                type="number"
+                name="discount_amount"
+                value={formData.discount_amount}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+              />
+              {errors.discount_amount && (
+                <p className="text-sm text-destructive">{errors.discount_amount}</p>
+              )}
+            </div>
 
-            <Input
-              label="ارز دیجیتال"
-              type="text"
-              name="crypto_currency"
-              value={formData.crypto_currency}
-              onChange={handleInputChange}
-              placeholder="مثال: BTC, ETH"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="crypto_currency">ارز دیجیتال</Label>
+              <Input
+                id="crypto_currency"
+                type="text"
+                name="crypto_currency"
+                value={formData.crypto_currency}
+                onChange={handleInputChange}
+                placeholder="مثال: BTC, ETH"
+              />
+            </div>
 
-            <Input
-              label="مقدار ارز دیجیتال"
-              type="number"
-              name="crypto_amount"
-              value={formData.crypto_amount}
-              onChange={handleInputChange}
-              error={errors.crypto_amount}
-              min="0"
-              step="0.00000001"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="crypto_amount">مقدار ارز دیجیتال</Label>
+              <Input
+                id="crypto_amount"
+                type="number"
+                name="crypto_amount"
+                value={formData.crypto_amount}
+                onChange={handleInputChange}
+                min="0"
+                step="0.00000001"
+              />
+              {errors.crypto_amount && (
+                <p className="text-sm text-destructive">{errors.crypto_amount}</p>
+              )}
+            </div>
 
-            <Input
-              label="Hash تراکنش"
-              type="text"
-              name="tx_hash"
-              value={formData.tx_hash}
-              onChange={handleInputChange}
-              placeholder="blockchain hash"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="tx_hash">Hash تراکنش</Label>
+              <Input
+                id="tx_hash"
+                type="text"
+                name="tx_hash"
+                value={formData.tx_hash}
+                onChange={handleInputChange}
+                placeholder="blockchain hash"
+              />
+            </div>
 
-            <Input
-              label="درگاه پرداخت"
-              type="text"
-              name="gateway"
-              value={formData.gateway}
-              onChange={handleInputChange}
-              placeholder="مثال: crypto_mock"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="gateway">درگاه پرداخت</Label>
+              <Input
+                id="gateway"
+                type="text"
+                name="gateway"
+                value={formData.gateway}
+                onChange={handleInputChange}
+                placeholder="مثال: crypto_mock"
+              />
+            </div>
 
-            <Input
-              label="تاریخ پرداخت"
-              type="datetime-local"
-              name="paid_at"
-              value={formData.paid_at}
-              onChange={handleInputChange}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="paid_at">تاریخ پرداخت</Label>
+              <Input
+                id="paid_at"
+                type="datetime-local"
+                name="paid_at"
+                value={formData.paid_at}
+                onChange={handleInputChange}
+              />
+            </div>
           </div>
 
           {errors.submit && (
@@ -411,7 +437,7 @@ export default function TransactionsPage() {
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -420,12 +446,13 @@ export default function TransactionsPage() {
             >
               انصراف
             </Button>
-            <Button type="submit" isLoading={isSubmitting}>
-              ذخیره تغییرات
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

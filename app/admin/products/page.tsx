@@ -481,10 +481,11 @@ export default function ProductsPage() {
           }
         }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{editingProductId ? 'ویرایش محصول' : 'افزودن محصول جدید'}</DialogTitle>
           </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">عنوان محصول *</Label>
             <Input
@@ -614,7 +615,8 @@ export default function ProductsPage() {
                   افزودن
                 </Button>
               </div>
-              {formData.keywords.length > 0 && (
+            </div>
+            {formData.keywords.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.keywords.map((keyword, idx) => (
                     <Badge key={idx} variant="secondary" className="gap-1">
@@ -808,6 +810,7 @@ export default function ProductsPage() {
               </div>
             </div>
           )}
+          </div>
 
           <DialogFooter>
             <Button
@@ -845,10 +848,7 @@ export default function ProductsPage() {
               {isSubmitting ? 'در حال ذخیره...' : editingProductId ? 'ذخیره تغییرات' : 'ایجاد محصول'}
             </Button>
           </DialogFooter>
-        </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </form></DialogContent></Dialog></div>
   );
 }
 
