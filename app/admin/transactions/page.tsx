@@ -42,6 +42,7 @@ export default function TransactionsPage() {
   const { user, isAuthenticated, loading } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [gatewayFilter, setGatewayFilter] = useState<string>('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [formData, setFormData] = useState({
@@ -92,7 +93,7 @@ export default function TransactionsPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
-          <p className="text-gray-600">در حال بارگذاری...</p>
+          <p className="text-muted-foreground">در حال بارگذاری...</p>
         </div>
       </div>
     );
@@ -105,15 +106,15 @@ export default function TransactionsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500/20 text-green-400 border border-green-500/30';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/20 text-red-400 border border-red-500/30';
       case 'cancelled':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground border border-border';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground border border-border';
     }
   };
 
@@ -239,56 +240,79 @@ export default function TransactionsPage() {
     setErrors({});
   };
 
+  const filteredTransactions = gatewayFilter
+    ? transactions.filter((t) => (t.gateway || '') === gatewayFilter)
+    : transactions;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">مدیریت تراکنش‌ها</h1>
+      <div className="flex flex-wrap items-center gap-4 justify-between mb-8">
+        <h1 className="text-3xl font-bold text-foreground">مدیریت تراکنش‌ها</h1>
+        <select
+          value={gatewayFilter}
+          onChange={(e) => setGatewayFilter(e.target.value)}
+          className="border border-input bg-background text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <option value="">همه درگاه‌ها</option>
+          <option value="manual">دستی (کارت بانکی)</option>
+          <option value="crypto_mock">ارز دیجیتال (mock)</option>
+        </select>
+      </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white rounded-lg shadow-md">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted/50">
             <tr>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 شناسه
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 کاربر
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 مبلغ
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                درگاه / بانک
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 وضعیت
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 تاریخ
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 عملیات
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {transactions.map((transaction) => (
-              <tr key={transaction.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {transaction.refId}
+          <tbody className="bg-card divide-y divide-border">
+            {filteredTransactions.map((transaction) => (
+              <tr key={transaction.id} className="hover:bg-muted/30 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground font-mono">
+                  {transaction.refId || (transaction as any).ref_id}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {transaction.user?.email || transaction.user_id}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ${transaction.amount}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                  {new Intl.NumberFormat('fa-IR').format(transaction.amount)} تومان
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                  {transaction.gateway === 'manual' && transaction.bank_account
+                    ? transaction.bank_account.bank_name
+                    : transaction.gateway || '—'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                    className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
                       transaction.status
                     )}`}
                   >
                     {transaction.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {new Date(transaction.created_at).toLocaleDateString('fa-IR')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -315,14 +339,14 @@ export default function TransactionsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 وضعیت
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">انتخاب کنید</option>
                 <option value="pending">در انتظار</option>
@@ -336,7 +360,7 @@ export default function TransactionsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">مبلغ (USD)</Label>
+              <Label htmlFor="amount">مبلغ (تومان)</Label>
               <Input
                 id="amount"
                 type="number"
@@ -352,7 +376,7 @@ export default function TransactionsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="discount_amount">مقدار تخفیف (USD)</Label>
+              <Label htmlFor="discount_amount">مقدار تخفیف (تومان)</Label>
               <Input
                 id="discount_amount"
                 type="number"
@@ -431,9 +455,15 @@ export default function TransactionsPage() {
             </div>
           </div>
 
+          {formData.status === 'completed' && (
+            <p className="text-sm text-amber-400 bg-amber-500/20 border border-amber-500/30 rounded-lg p-3">
+              در صورت پرداخت دستی، اطمینان حاصل کنید کاربر تیکت و رسید ارسال کرده است.
+            </p>
+          )}
+
           {errors.submit && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{errors.submit}</p>
+            <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+              <p className="text-sm text-red-400">{errors.submit}</p>
             </div>
           )}
 

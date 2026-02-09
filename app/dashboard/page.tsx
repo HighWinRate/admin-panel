@@ -138,6 +138,9 @@ export default function DashboardPage() {
               <a href="/admin/transactions" className="block text-primary hover:underline">
                 مدیریت تراکنش‌ها
               </a>
+              <a href="/admin/bank-accounts" className="block text-primary hover:underline">
+                حساب‌های بانکی
+              </a>
               <a href="/admin/discounts" className="block text-primary hover:underline">
                 مدیریت کدهای تخفیف
               </a>

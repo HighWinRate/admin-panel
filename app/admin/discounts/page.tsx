@@ -286,7 +286,7 @@ export default function DiscountsPage() {
             <p className="text-gray-600 text-sm mb-4">{discount.description || 'بدون توضیحات'}</p>
             <div className="flex justify-between items-center mb-4">
               <span className="text-blue-600 font-semibold">
-                {discount.type === 'percentage' ? `${discount.amount}%` : `$${discount.amount}`}
+                {discount.type === 'percentage' ? `${discount.amount}%` : `${new Intl.NumberFormat('fa-IR').format(discount.amount)} تومان`}
               </span>
               <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                 discount.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -301,7 +301,7 @@ export default function DiscountsPage() {
             )}
             {discount.minimum_amount && (
               <p className="text-xs text-gray-500 mb-4">
-                حداقل مبلغ: ${discount.minimum_amount}
+                حداقل مبلغ: {new Intl.NumberFormat('fa-IR').format(discount.minimum_amount)} تومان
               </p>
             )}
             <div className="flex gap-2">
@@ -392,7 +392,7 @@ export default function DiscountsPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="percentage">درصدی (%)</option>
-                <option value="fixed">مبلغ ثابت ($)</option>
+                <option value="fixed">مبلغ ثابت (تومان)</option>
               </select>
             </div>
           </div>
@@ -428,7 +428,7 @@ export default function DiscountsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="minimum_amount">حداقل مبلغ سفارش ($)</Label>
+              <Label htmlFor="minimum_amount">حداقل مبلغ سفارش (تومان)</Label>
               <Input
                 id="minimum_amount"
                 name="minimum_amount"

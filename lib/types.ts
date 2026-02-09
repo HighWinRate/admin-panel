@@ -89,6 +89,7 @@ export interface Transaction {
   amount: number;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
   refId: string;
+  ref_id?: string;
   cryptoAddress?: string;
   cryptoAmount?: number;
   cryptoCurrency?: string;
@@ -97,8 +98,15 @@ export interface Transaction {
   discount_amount?: number;
   tx_hash?: string;
   gateway?: string;
+  bank_account_id?: string | null;
   user?: User;
   product?: Product;
+  bank_account?: {
+    id: string;
+    bank_name: string;
+    account_holder: string;
+    card_number: string;
+  } | null;
 }
 
 export interface DiscountCode {
@@ -131,6 +139,17 @@ export interface UserPurchase {
   user?: User;
   product?: Product;
   transaction?: Transaction | null;
+}
+
+export interface BankAccount {
+  id: string;
+  card_number: string;
+  account_holder: string;
+  bank_name: string;
+  iban: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export type TicketStatus = 'open' | 'in_progress' | 'waiting_for_user' | 'resolved' | 'closed';

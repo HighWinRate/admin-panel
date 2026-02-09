@@ -66,25 +66,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     const syncSession = async () => {
       try {
-        // Add a timeout to prevent infinite loading
-        const timeoutPromise = new Promise((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Session sync timeout')), 10000);
+        const timeoutMs = 15000;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error('Session sync timeout')),
+            timeoutMs,
+          );
         });
 
         const sessionPromise = supabase.auth.getSession();
 
-        const {
-          data: { session },
-          error,
-        } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-
-        clearTimeout(timeoutId);
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
 
         if (!isMounted) return;
+
+        const { data: { session }, error } = result as Awaited<ReturnType<typeof supabase.auth.getSession>>;
 
         if (error) {
           console.error('Failed to load Supabase session:', error);
@@ -100,11 +104,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         setLoading(false);
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (isMounted) {
-          setUser(null);
-          setLoading(false);
+      } catch (err) {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
+        const isTimeout = err instanceof Error && err.message === 'Session sync timeout';
+        if (isTimeout) {
+          // شبکه یا Supabase کند جواب داده؛ بدون خطا فقط به صفحه ورود برمی‌گردیم
+          if (isMounted) {
+            setUser(null);
+            setLoading(false);
+          }
+        } else {
+          console.error('Auth initialization error:', err);
+          if (isMounted) {
+            setUser(null);
+            setLoading(false);
+          }
         }
       }
     };
@@ -134,14 +151,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase, fetchUserProfile]);
 
   const login = async (email: string, password: string) => {
-    setLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      setLoading(false);
       throw new Error(error.message);
     }
 
@@ -149,8 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (sessionUser && data.session) {
       await fetchUserProfile(sessionUser.id, sessionUser);
     }
-
-    setLoading(false);
+    // loading را عوض نمی‌کنیم تا صفحه لاگین اسکلتون نشود؛ ریدایرکت بلافاصله انجام می‌شود
   };
 
   const logout = async () => {

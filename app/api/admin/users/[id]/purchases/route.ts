@@ -12,12 +12,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const admin = createAdminClient();
   const { data, error } = await admin
     .from('user_purchases')
-    .select(`*, product:products(*)`)
+    .select('*, product:products(*)')
     .eq('user_id', id)
-    .order('created_at', { ascending: false });
+    .order('purchased_at', { ascending: false });
 
   if (error) {
-    return new NextResponse(error.message, { status: 500 });
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 
   return NextResponse.json(data || []);
@@ -47,7 +47,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .single();
 
   if (error) {
-    return new NextResponse(error.message, { status: 500 });
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 
   return NextResponse.json(data);

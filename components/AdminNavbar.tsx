@@ -35,6 +35,12 @@ export function AdminNavbar() {
                 <Link href="/admin/users" className="text-foreground hover:text-primary transition-colors">
                   کاربران
                 </Link>
+                <Link href="/admin/transactions" className="text-foreground hover:text-primary transition-colors">
+                  تراکنش‌ها
+                </Link>
+                <Link href="/admin/bank-accounts" className="text-foreground hover:text-primary transition-colors">
+                  حساب‌های بانکی
+                </Link>
                 <Link href="/admin/tickets" className="text-foreground hover:text-primary transition-colors">
                   تیکت‌ها
                 </Link>

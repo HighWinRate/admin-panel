@@ -429,7 +429,7 @@ export default function ProductsPage() {
             <CardContent>
               <p className="text-muted-foreground text-sm mb-4">{product.description}</p>
               <div className="flex justify-between items-center mb-4">
-                <span className="text-primary font-semibold">${product.price}</span>
+                <span className="text-primary font-semibold">{new Intl.NumberFormat('fa-IR').format(product.price)} تومان</span>
                 <Badge variant="secondary">نرخ برد: {product.winrate}%</Badge>
               </div>
               <div className="flex gap-2">
@@ -514,7 +514,7 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">قیمت (USD) *</Label>
+              <Label htmlFor="price">قیمت (تومان) *</Label>
               <Input
                 id="price"
                 name="price"
@@ -551,7 +551,7 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="discountedPrice">قیمت تخفیف (USD)</Label>
+              <Label htmlFor="discountedPrice">قیمت تخفیف (تومان)</Label>
               <Input
                 id="discountedPrice"
                 name="discountedPrice"

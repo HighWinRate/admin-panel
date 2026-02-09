@@ -17,6 +17,12 @@ export async function listTransactions(): Promise<Transaction[]> {
       product:products (
         id,
         title
+      ),
+      bank_account:bank_accounts (
+        id,
+        bank_name,
+        account_holder,
+        card_number
       )
     `,
     )
