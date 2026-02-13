@@ -109,7 +109,7 @@ admin-panel/
 ## 🔗 لینک‌های مرتبط
 
 - Backend API: `http://localhost:3000`
-- Frontend (Client): `http://localhost:3001`
+- Web App (Client): `http://localhost:3001`
 - Admin Panel: `http://localhost:3002`
 
 ---
