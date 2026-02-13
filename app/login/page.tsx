@@ -32,6 +32,10 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
+      
+      // Wait a bit for state to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'خطا در ورود');

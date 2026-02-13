@@ -85,7 +85,8 @@ export interface File {
 export interface Transaction {
   id: string;
   user_id: string;
-  product_id: string;
+  product_id: string | null;
+  subscription_plan_id?: string | null;
   amount: number;
   status: 'pending' | 'completed' | 'failed' | 'cancelled';
   refId: string;
@@ -101,6 +102,11 @@ export interface Transaction {
   bank_account_id?: string | null;
   user?: User;
   product?: Product;
+  subscription_plan?: {
+    id: string;
+    name: string;
+    duration_days: number;
+  } | null;
   bank_account?: {
     id: string;
     bank_name: string;
@@ -212,5 +218,48 @@ export interface TicketStatistics {
     feature_request: number;
     bug_report: number;
   };
+}
+
+// Subscription Types
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  duration_days: number;
+  price: number;
+  is_active: boolean;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled';
+
+export interface UserSubscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  plan?: SubscriptionPlan;
+  start_date: string;
+  end_date: string;
+  status: SubscriptionStatus;
+  auto_renew: boolean;
+  transaction_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSubscriptionWithDetails extends UserSubscription {
+  plan_name: string;
+  days_remaining: number;
+  is_expiring_soon: boolean;
+  is_expired: boolean;
+  user?: User;
+}
+
+export interface CreateSubscriptionData {
+  user_id: string;
+  plan_id: string;
+  transaction_id?: string;
+  start_date?: string;
 }
 

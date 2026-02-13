@@ -270,6 +270,9 @@ export default function TransactionsPage() {
                 کاربر
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                محصول/اشتراک
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 مبلغ
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -294,6 +297,16 @@ export default function TransactionsPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   {transaction.user?.email || transaction.user_id}
+                </td>
+                <td className="px-6 py-4 text-sm text-foreground">
+                  {transaction.subscription_plan ? (
+                    <span className="flex items-center gap-2">
+                      <Badge variant="secondary">اشتراک</Badge>
+                      {transaction.subscription_plan.name}
+                    </span>
+                  ) : (
+                    transaction.product?.title || '—'
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                   {new Intl.NumberFormat('fa-IR').format(transaction.amount)} تومان
@@ -336,6 +349,40 @@ export default function TransactionsPage() {
           <DialogHeader>
             <DialogTitle>ویرایش تراکنش</DialogTitle>
           </DialogHeader>
+          
+          {/* Transaction Info */}
+          {editingTransaction && (
+            <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">کاربر:</span>
+                <span className="font-medium">{editingTransaction.user?.email}</span>
+              </div>
+              {editingTransaction.subscription_plan && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">محصول:</span>
+                  <span className="font-medium flex items-center gap-2">
+                    <Badge variant="secondary">اشتراک</Badge>
+                    {editingTransaction.subscription_plan.name}
+                  </span>
+                </div>
+              )}
+              {editingTransaction.product && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">محصول:</span>
+                  <span className="font-medium">{editingTransaction.product.title}</span>
+                </div>
+              )}
+              {editingTransaction.bank_account && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">بانک:</span>
+                  <span className="font-medium">
+                    {editingTransaction.bank_account.bank_name} - {editingTransaction.bank_account.card_number}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>

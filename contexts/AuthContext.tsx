@@ -40,11 +40,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserProfile = useCallback(
     async (userId: string, sessionUser?: SupabaseUser) => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', userId)
           .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+        }
 
         if (data) {
           setUser(data);
@@ -164,7 +168,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (sessionUser && data.session) {
       await fetchUserProfile(sessionUser.id, sessionUser);
     }
-    // loading را عوض نمی‌کنیم تا صفحه لاگین اسکلتون نشود؛ ریدایرکت بلافاصله انجام می‌شود
   };
 
   const logout = async () => {

@@ -25,6 +25,8 @@ export default function DashboardPage() {
     courses: 0,
     users: 0,
     transactions: 0,
+    subscriptions: 0,
+    active_subscriptions: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -49,7 +51,7 @@ export default function DashboardPage() {
       loadStats()
         .catch((error) => {
           console.error('Error fetching stats:', error);
-          setStats({ products: 0, courses: 0, users: 0, transactions: 0 });
+          setStats({ products: 0, courses: 0, users: 0, transactions: 0, subscriptions: 0, active_subscriptions: 0 });
         })
         .finally(() => {
           setLoadingStats(false);
@@ -81,7 +83,7 @@ export default function DashboardPage() {
         خوش آمدید {user.first_name} {user.last_name}
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">محصولات</CardTitle>
@@ -117,6 +119,24 @@ export default function DashboardPage() {
             <p className="text-3xl font-bold text-primary">{stats.transactions}</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">اشتراک‌ها</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-primary">{stats.subscriptions}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">اشتراک‌های فعال</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-green-600">{stats.active_subscriptions}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -137,6 +157,12 @@ export default function DashboardPage() {
               </a>
               <a href="/admin/transactions" className="block text-primary hover:underline">
                 مدیریت تراکنش‌ها
+              </a>
+              <a href="/admin/subscriptions" className="block text-primary hover:underline">
+                مدیریت اشتراک‌ها
+              </a>
+              <a href="/admin/subscription-plans" className="block text-primary hover:underline">
+                مدیریت پلن‌های اشتراک
               </a>
               <a href="/admin/bank-accounts" className="block text-primary hover:underline">
                 حساب‌های بانکی

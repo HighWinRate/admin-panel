@@ -18,6 +18,11 @@ export async function listTransactions(): Promise<Transaction[]> {
         id,
         title
       ),
+      subscription_plan:subscription_plans (
+        id,
+        name,
+        duration_days
+      ),
       bank_account:bank_accounts (
         id,
         bank_name,
